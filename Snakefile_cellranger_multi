@@ -24,9 +24,57 @@ OUTPUT_DIR = config["paths"]["output"]
 # Rule all - defines final outputs for all samples
 rule all:
     input:
+        # FastQC reports
+        expand(f"{OUTPUT_DIR}/fastqc/{{sample}}_r1_fastqc.html", sample=SAMPLES),
+        expand(f"{OUTPUT_DIR}/fastqc/{{sample}}_r2_fastqc.html", sample=SAMPLES),
+        # CellRanger outputs
         expand(f"{OUTPUT_DIR}/{{sample}}/outs/web_summary.html", sample=SAMPLES),
         expand(f"{OUTPUT_DIR}/{{sample}}/outs/filtered_feature_bc_matrix.h5", sample=SAMPLES),
-        f"{OUTPUT_DIR}/multi_sample_summary.txt"
+        f"{OUTPUT_DIR}/multi_sample_summary.txt",
+        # MultiQC report
+        f"{OUTPUT_DIR}/multiqc_report.html"
+
+# Rule: FastQC on raw FASTQ files
+rule fastqc:
+    input:
+        r1 = f"{FASTQ_DIR}/{{sample}}/*_R1_*.fastq.gz",
+        r2 = f"{FASTQ_DIR}/{{sample}}/*_R2_*.fastq.gz"
+    output:
+        r1_html = f"{OUTPUT_DIR}/fastqc/{{sample}}_r1_fastqc.html",
+        r1_zip = f"{OUTPUT_DIR}/fastqc/{{sample}}_r1_fastqc.zip",
+        r2_html = f"{OUTPUT_DIR}/fastqc/{{sample}}_r2_fastqc.html",
+        r2_zip = f"{OUTPUT_DIR}/fastqc/{{sample}}_r2_fastqc.zip"
+    threads: 2
+    resources:
+        mem_mb = 4000,
+        cpus = 2,
+        partition = "standard",
+        account = "sbsandme_lab"
+    shell:
+        """
+        module load fastqc/0.11.9
+        mkdir -p {OUTPUT_DIR}/fastqc
+        fastqc -o {OUTPUT_DIR}/fastqc -t {threads} {input.r1} {input.r2}
+        module unload fastqc/0.11.9
+        """
+
+# Rule: MultiQC report
+rule multiqc:
+    input:
+        expand(f"{OUTPUT_DIR}/fastqc/{{sample}}_r1_fastqc.html", sample=SAMPLES),
+        expand(f"{OUTPUT_DIR}/fastqc/{{sample}}_r2_fastqc.html", sample=SAMPLES)
+    output:
+        report = f"{OUTPUT_DIR}/multiqc_report.html"
+    threads: 2
+    resources:
+        mem_mb = 4000,
+        cpus = 2,
+        partition = "standard",
+        account = "sbsandme_lab"
+    shell:
+        """
+        singularity run /dfs9/ucightf-lab/kstachel/TOOLS/multiqc-1.20.sif multiqc {OUTPUT_DIR}/fastqc -o {OUTPUT_DIR}
+        """
 
 # Rule: CellRanger count for each sample
 rule cellranger_count:
@@ -47,7 +95,7 @@ rule cellranger_count:
         mem_mb = 131072,  # 128GB in MB
         cpus = 8,
         partition = "standard",
-        account = "SBSANDME_LAB"
+        account = "sbsandme_lab"
     shell:
         """
         module load cellranger/8.0.1
