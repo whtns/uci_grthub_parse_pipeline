@@ -1,6 +1,17 @@
 # Multi-sample CellRanger Snakemake workflow
 # For processing multiple single-cell RNA-seq samples
 
+EMAIL = "kstachel@uci.edu"
+
+onstart:
+   shell("mail -s 'STARTED' {EMAIL} < {log}")
+
+onsuccess:
+   shell("mail -s 'DONE' {EMAIL} < {log}")
+
+onerror:
+   shell("mail -s 'ERROR' {EMAIL} < {log}")
+
 # Load configuration
 configfile: "config_cellranger_multi.yaml"
 
