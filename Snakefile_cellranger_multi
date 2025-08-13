@@ -133,3 +133,6 @@ rule multi_sample_summary:
                 f.write(f"  - Web summary: {OUTPUT_DIR}/{sample}/outs/web_summary.html\n")
                 f.write(f"  - Filtered matrix: {OUTPUT_DIR}/{sample}/outs/filtered_feature_bc_matrix.h5\n")
                 f.write(f"  - BAM file: {OUTPUT_DIR}/{sample}/outs/possorted_genome_bam.bam\n\n")
+
+# Rule: SCENIC analysis
+include: "rules/scenic.smk"
