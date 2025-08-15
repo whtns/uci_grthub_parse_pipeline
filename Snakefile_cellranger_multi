@@ -10,6 +10,7 @@ onerror:
    shell("mail -s 'ERROR' {EMAIL} < {log}")
 
 from datetime import datetime
+import loompy
 
 # Load configuration
 configfile: "config_cellranger_multi.yaml"
@@ -27,11 +28,26 @@ rule all:
         # expand(f"fastqc/{{sample}}_r1_fastqc.html", sample=SAMPLES),
         # expand(f"fastqc/{{sample}}_r2_fastqc.html", sample=SAMPLES),
         # CellRanger outputs
-        expand(f"{OUTPUT_DIR}/{{sample}}/outs/web_summary.html", sample=SAMPLES),
-        expand(f"{OUTPUT_DIR}/{{sample}}/outs/filtered_feature_bc_matrix.h5", sample=SAMPLES),
-        f"multi_sample_summary.txt",
-        # # MultiQC report
-        # f"multiqc_report.html"
+        expand(f"{OUTPUT_DIR}/cellranger/{{sample}}/outs/web_summary.html", sample=SAMPLES),
+        expand(f"{OUTPUT_DIR}/cellranger/{{sample}}/outs/filtered_feature_bc_matrix.h5", sample=SAMPLES),
+        f"{OUTPUT_DIR}/multi_sample_summary.txt",
+        # MultiQC report
+        # f"{OUTPUT_DIR}/multiqc_report.html",
+        # loompy outputs
+        expand(f"{OUTPUT_DIR}/loom/{{sample}}.loom", sample=SAMPLES),
+        # scenic outputs
+        expand(f"{OUTPUT_DIR}/scenic/{{sample}}.loom", sample=SAMPLES),
+        # # Seurat outputs
+        # expand(f"{OUTPUT_DIR}/seurat/{{sample}}_seu.rds", sample=SAMPLES),
+        # expand(f"{OUTPUT_DIR}/seurat/{{sample}}_embeddings.csv", sample=SAMPLES),
+        # Velocyto outputs
+        expand(f"{OUTPUT_DIR}/velocyto/{{sample}}.loom", sample=SAMPLES)
+        # # scVelo outputs
+        # expand(f"{OUTPUT_DIR}/scanpy/{{sample}}_scvelo.h5ad", sample=SAMPLES),
+        # # Pileup and phasing outputs
+        # expand(f"{OUTPUT_DIR}/numbat/{{sample}}_allele_counts.tsv.gz", sample=SAMPLES),
+        # # Numbat outputs
+        # expand(f"{OUTPUT_DIR}/numbat/{{sample}}/done.txt", sample=SAMPLES)
 
 # Rule: FastQC on raw FASTQ files
 rule fastqc:
@@ -63,7 +79,7 @@ rule multiqc:
         expand(f"fastqc/{{sample}}_r1_fastqc.html", sample=SAMPLES),
         expand(f"fastqc/{{sample}}_r2_fastqc.html", sample=SAMPLES)
     output:
-        report = f"multiqc_report.html"
+        report = f"{OUTPUT_DIR}/multiqc_report.html"
     threads: 2
     resources:
         mem_mb = 4000,
@@ -72,7 +88,9 @@ rule multiqc:
         account = "sbsandme_lab"
     shell:
         """
+        module load singularity/3.11.3
         singularity run /dfs9/ucightf-lab/kstachel/TOOLS/multiqc-1.20.sif multiqc {OUTPUT_DIR}/fastqc -o {OUTPUT_DIR}
+        module unload singularity/3.11.3
         """
 
 # Rule: CellRanger count for each sample
@@ -80,10 +98,10 @@ rule cellranger_count:
     input:
         fastq_dir = f"{FASTQ_DIR}/{{sample}}"
     output:
-        web_summary = f"{OUTPUT_DIR}/{{sample}}/outs/web_summary.html",
-        filtered_matrix = f"{OUTPUT_DIR}/{{sample}}/outs/filtered_feature_bc_matrix.h5",
-        bam_file = f"{OUTPUT_DIR}/{{sample}}/outs/possorted_genome_bam.bam",
-        molecule_info = f"{OUTPUT_DIR}/{{sample}}/outs/molecule_info.h5"
+        web_summary = f"{OUTPUT_DIR}/cellranger/{{sample}}/outs/web_summary.html",
+        filtered_matrix = f"{OUTPUT_DIR}/cellranger/{{sample}}/outs/filtered_feature_bc_matrix.h5",
+        bam_file = f"{OUTPUT_DIR}/cellranger/{{sample}}/outs/possorted_genome_bam.bam",
+        molecule_info = f"{OUTPUT_DIR}/cellranger/{{sample}}/outs/molecule_info.h5"
     params:
         transcriptome = TRANSCRIPTOME,
         output_dir = OUTPUT_DIR,
@@ -101,7 +119,7 @@ rule cellranger_count:
         module load cellranger/8.0.1
         
         rm  -rf {wildcards.sample}
-        rm  -rf {params.output_dir}/{wildcards.sample}
+        rm  -rf {params.output_dir}/cellranger/{wildcards.sample}
 
         cellranger count --id={wildcards.sample} \
         --transcriptome={params.transcriptome} \
@@ -110,7 +128,7 @@ rule cellranger_count:
         --localcores={params.localcores} \
         --localmem={params.localmem}
 
-        mv {wildcards.sample} {params.output_dir}/{wildcards.sample}
+        mv {wildcards.sample} {params.output_dir}/cellranger/{wildcards.sample}
         
         module unload cellranger/8.0.1
         """
@@ -118,9 +136,9 @@ rule cellranger_count:
 # Rule: Generate multi-sample summary
 rule multi_sample_summary:
     input:
-        web_summaries = expand(f"{OUTPUT_DIR}/{{sample}}/outs/web_summary.html", sample=SAMPLES)
+        web_summaries = expand(f"{OUTPUT_DIR}/cellranger/{{sample}}/outs/web_summary.html", sample=SAMPLES)
     output:
-        summary = f"multi_sample_summary.txt"
+        summary = f"{OUTPUT_DIR}/multi_sample_summary.txt"
     run:
         with open(output.summary, 'w') as f:
             f.write("CellRanger Multi-Sample Analysis Summary\n")
@@ -130,9 +148,101 @@ rule multi_sample_summary:
             
             for sample in SAMPLES:
                 f.write(f"Sample: {sample}\n")
-                f.write(f"  - Web summary: {OUTPUT_DIR}/{sample}/outs/web_summary.html\n")
-                f.write(f"  - Filtered matrix: {OUTPUT_DIR}/{sample}/outs/filtered_feature_bc_matrix.h5\n")
-                f.write(f"  - BAM file: {OUTPUT_DIR}/{sample}/outs/possorted_genome_bam.bam\n\n")
+                f.write(f"  - Web summary: {OUTPUT_DIR}/cellranger/{sample}/outs/web_summary.html\n")
+                f.write(f"  - Filtered matrix: {OUTPUT_DIR}/cellranger/{sample}/outs/filtered_feature_bc_matrix.h5\n")
+                f.write(f"  - BAM file: {OUTPUT_DIR}/cellranger/{sample}/outs/possorted_genome_bam.bam\n\n")
+
+# Rule: loompy
+rule loompy:
+    input:
+        folder = f"{OUTPUT_DIR}/cellranger/{{sample}}"
+    output:
+        loom_file = f"{OUTPUT_DIR}/loom/{{sample}}.loom"
+    resources:
+        mem_mb = 8000,  # 8GB for loompy
+        cpus = 4,
+        partition = "standard"
+    threads: 4
+    run:
+        loompy.create_from_cellranger(input.folder, f"{OUTPUT_DIR}/loom", genome="hg38")
+
+# Rule: Seurat
+rule seurat:
+    input:
+        matrix_dir = f"{OUTPUT_DIR}/{{sample}}/outs/filtered_feature_bc_matrix/",
+        script = "scripts/process_seurat.R"
+    output:
+        seu_path = f"{OUTPUT_DIR}/seurat/{{sample}}_seu.rds"
+    log:
+        f"{OUTPUT_DIR}/logs/seurat_{{sample}}.log"
+    threads: 4
+    shell:
+        '''Rscript {input.script} matrix_dir="{input.matrix_dir}" seu_path="{output.seu_path}" celltype_ref="config['celltype_ref']" > {log} 2>&1'''
+
+# Rule: Save Seurat embeddings
+rule seurat_embeddings:
+    input:
+        seu_path = f"{OUTPUT_DIR}/seurat/{{sample}}_seu.rds",
+        nb_path = f"{OUTPUT_DIR}/numbat/{{sample}}_numbat.rds",
+        script = "scripts/save_seurat_embeddings.R"
+    output:
+        seurat_embeddings = f"{OUTPUT_DIR}/seurat/{{sample}}_embeddings.csv"
+    log:
+        f"{OUTPUT_DIR}/logs/seurat_{{sample}}_embeddings.log"
+    threads: 2
+    shell:
+        '''Rscript {input.script} seu_path="{input.seu_path}" nb_path="{input.nb_path}" > {log} 2>&1'''
+
+# Rule: Velocyto
+rule velocyto:
+    input:
+        sample_folder = f"{OUTPUT_DIR}/{{sample}}"
+    output:
+        loom = f"{OUTPUT_DIR}/velocyto/{{sample}}.loom"
+    threads: 4
+    shell:
+        """
+        module load velocyto/0.17.17
+        velocyto run10x -m config["references"]["repeat_mask"] {input.sample_folder} config["gtf"] > {output.loom}
+        module unload velocyto/0.17.17
+        """
+
+# Rule: scVelo
+rule scvelo:
+    input:
+        loom_file = f"{OUTPUT_DIR}/velocyto/{{sample}}.loom",
+        anndata_file = f"{OUTPUT_DIR}/scanpy/{{sample}}.h5ad",
+        seurat_embeddings = f"{OUTPUT_DIR}/seurat/{{sample}}_embeddings.csv"
+    output:
+        scvelo_h5ad = f"{OUTPUT_DIR}/scanpy/{{sample}}_scvelo.h5ad"
+    threads: 2
+    shell:
+        '''python scripts/compute_velocity.py {input.anndata_file} {input.loom_file} {input.seurat_embeddings}'''
+
+# Rule: pileup and phasing
+rule pileup_and_phasing:
+    input:
+        bam = f"{OUTPUT_DIR}/{{sample}}/outs/possorted_genome_bam.bam",
+        barcodes = f"{OUTPUT_DIR}/{{sample}}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz",
+        script = "scripts/pileup_and_phase.R"
+    output:
+        allele_df = f"{OUTPUT_DIR}/numbat/{{sample}}_allele_counts.tsv.gz"
+    threads: 4
+    shell:
+        '''Rscript {input.script} --label {wildcards.sample} --samples {wildcards.sample} --bams {input.bam} --barcodes {input.barcodes} --gmap config["gmap"] --snpvcf config["snpvcf"] --paneldir config["paneldir"] --outdir {OUTPUT_DIR}/numbat/{wildcards.sample} --ncores {threads}'''
+
+# Rule: Numbat
+rule numbat:
+    input:
+        allele_df = f"{OUTPUT_DIR}/numbat/{{sample}}_allele_counts.tsv.gz",
+        matrix_file = f"{OUTPUT_DIR}/{{sample}}/outs/filtered_feature_bc_matrix/matrix.mtx.gz",
+        seu_path = f"{OUTPUT_DIR}/seurat/{{sample}}_seu.rds",
+        script = "scripts/run_numbat.R"
+    output:
+        done_file = f"{OUTPUT_DIR}/numbat/{{sample}}/done.txt"
+    threads: 4
+    shell:
+        '''Rscript {input.script} seu_path="{input.seu_path}" ref_path=config["ref_path"] tau=config["tau"] read_prop=config["read_prop"] max_iter=config["max_iter"] min_LLR=config["min_LLR"] t=config["numbat_t"] cell_ceiling=config["cell_ceiling"] max_entropy=config["max_entropy"] allele_df="{input.allele_df}" matrix_file="{input.matrix_file}" out_dir="{OUTPUT_DIR}/numbat/{{wildcards.sample}}" ncores={threads} rprof_out={OUTPUT_DIR}/numbat/{{wildcards.sample}}/log.prof > {output.done_file} 2>&1'''
 
 # Rule: SCENIC analysis
 include: "rules/scenic.smk"

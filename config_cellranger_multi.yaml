@@ -1,6 +1,9 @@
 # Multi-sample configuration file for CellRanger Snakemake workflow
 
-# List of samples to process
+# ENSEMBL_RELEASE=84
+# ENSEMBL_GRCh38_BASE=ftp://ftp.ensembl.org/pub/release-${ENSEMBL_RELEASE}/fasta/homo_sapiens/dna
+
+# List of samples to process  
 samples:
   - A172
   - U251
@@ -9,7 +12,7 @@ samples:
 # Input/Output paths
 paths:
   fastqs: "/dfs9/ucightf-lab/kstachel/scRNAseq_Pipeline/data/FASTQ"
-  output: "cellranger_output"  # Output directory for all samples
+  output: "output"  # Output directory for all samples
 
 # Reference genome/transcriptome
 references:
@@ -17,11 +20,17 @@ references:
   transcriptome: "/dfs8/commondata/cellranger/refdata-cellranger-GRCh38-3.0.0"
   # Mouse reference (alternative)
   # transcriptome: "/dfs8/commondata/cellranger/refdata-cellranger-mm10-1.2.0"
+  repeat_mask: "/dfs9/ucightf-lab/kstachel/kstachel_references/repeatmasker/Homo_sapiens_rm_refseq.out.gz"
 
 # CellRanger parameters
 params:
   localcores: 8
   localmem: 128  # GB
+
+## Scenic
+TFs: "/dfs9/ucightf-lab/kstachel/kstachel_references/scenic/hs_hgnc_curated_tfs.txt"
+motifs: "/dfs9/ucightf-lab/kstachel/kstachel_references/scenic/motifs-v9-nr.hgnc.tbl"
+feather_db: "/dfs9/ucightf-lab/kstachel/kstachel_references/scenic/hg38_refseq-10kb_up_and_down_tss.mc9nr.feather"
 
 # Available references (for documentation)
 # Main directory: /dfs8/commondata/cellranger/
