@@ -13,8 +13,6 @@ rule subsample_loom:
     benchmark:
         f"{OUTPUT_DIR}/benchmarks/{{sample}}_subsample_loom.txt"
     threads: 2
-    conda:
-        "../envs/environment.yaml"
     shell:
         """
         python scripts/subsample_loom.py \
@@ -26,9 +24,11 @@ rule subsample_loom:
 # SCENIC rule for running the SCENIC analysis pipeline
 rule runscenic:
     input:
-        loom_file = f"{OUTPUT_DIR}/loom/{{sample}}_subsampled.loom"
+        loom_file = f"{OUTPUT_DIR}/loom/{{sample}}.loom"
     output:
-        scenic_loom = f"{OUTPUT_DIR}/scenic/{{sample}}.loom"
+        loom_output_path = f"{OUTPUT_DIR}/scenic/{{sample}}.loom",
+        loom_filtered_path = f"{OUTPUT_DIR}/scenic/{{sample}}_filtered.loom",
+        report = f"{OUTPUT_DIR}/reports/{{sample}}_scenic_report.html"
     resources:
         mem_mb = 16000,  # 16GB for SCENIC
         cpus = 8,  
@@ -37,18 +37,25 @@ rule runscenic:
         f"{OUTPUT_DIR}/Rout/{{sample}}/scenic.Rout"
     benchmark:
         f"{OUTPUT_DIR}/benchmarks/{{sample}}_scenic.txt"
-    threads: 8
+    threads: 24
     params:
         TFs = config['TFs'],
         motifs = config['motifs'],
-        feather_db = config['feather_db']
+        feather_db = config['feather_db'],
+        loom_filtered = f"{{sample}}_filtered.loom",
+        loom_output = f"{{sample}}.loom"
     shell:
         """
         module load singularity/3.11.3
         nextflow run aertslab/SCENICprotocol -profile singularity \
-        --loom_input {input.loom_file} --loom_output {output.scenic_loom} \
+        --loom_input {input.loom_file} \
+        --loom_filtered_path {output.loom_filtered_path} \
+        --loom_filtered {params.loom_filtered} \
+        --loom_output_path {output.loom_output_path} \
+        --loom_output {params.loom_output} \
         --TFs {params.TFs} --motifs {params.motifs} --db {params.feather_db} \
         --thr_min_genes 10
+        -with-report {output.report}
         module unload singularity/3.11.3
         """
 
