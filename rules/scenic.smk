@@ -31,13 +31,12 @@ rule runscenic:
         report = f"{OUTPUT_DIR}/reports/{{sample}}_scenic_report.html"
     resources:
         mem_mb = 16000,  # 16GB for SCENIC
-        cpus = 8,  
         partition = "standard"
+    threads: 24
     log:
         f"{OUTPUT_DIR}/Rout/{{sample}}/scenic.Rout"
     benchmark:
         f"{OUTPUT_DIR}/benchmarks/{{sample}}_scenic.txt"
-    threads: 24
     params:
         TFs = config['TFs'],
         motifs = config['motifs'],
@@ -54,7 +53,11 @@ rule runscenic:
         --loom_output_path {output.loom_output_path} \
         --loom_output {params.loom_output} \
         --TFs {params.TFs} --motifs {params.motifs} --db {params.feather_db} \
-        --thr_min_genes 10
+        --thr_min_genes 200 \
+        --thr_min_cells 3 \
+        --thr_n_genes 20000 \
+        --thr_pct_mito 0.25 \
+        --threads {threads} \
         -with-report {output.report}
         module unload singularity/3.11.3
         """
