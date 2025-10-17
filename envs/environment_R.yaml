@@ -1,3 +1,17 @@
+channels:
+- conda-forge
+- bioconda
+- r
 dependencies:
-- r=3.5.1
+- r-base=4.1
 - pandoc
+- r-seurat
+- r-harmony
+- r-ggplot2
+- r-dplyr
+- r-matrix
+- r-argparse
+- r-future
+- r-devtools
+- bioconductor-singlecellexperiment
+- bioconductor-summarizedexperiment

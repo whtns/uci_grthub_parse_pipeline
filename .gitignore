@@ -12,3 +12,6 @@ work/
 slurm*
 *python/cache/*
 *.h5ad
+*.out
+*.tar.gz
+*.zip

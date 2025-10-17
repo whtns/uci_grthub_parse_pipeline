@@ -1,0 +1,20 @@
+channels:
+- conda-forge
+- bioconda
+- pytorch
+dependencies:
+- python=3.9
+- scanpy
+- scvi-tools
+- pandas
+- numpy
+- matplotlib
+- seaborn
+- scipy
+- scikit-learn
+- anndata
+- loompy
+- h5py
+- pip
+- pip:
+    - grthub_tools
