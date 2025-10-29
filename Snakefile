@@ -17,7 +17,7 @@ import re
 
 
 # Load configuration
-configfile: "config_cellranger_multi.yaml"
+configfile: "config.yaml"
 
 # Extract sample list and configuration
 FASTQ_DIR = config["paths"]["fastqs"]
