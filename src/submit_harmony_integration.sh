@@ -80,12 +80,22 @@ for output_prefix in "$@"; do
     slug=$(basename "$output_prefix")
     DIRNAME=$(dirname "$output_prefix")
 
-    papermill "src/inspect_integrated_anndata.ipynb" \
-        "$DIRNAME/inspect_integrated_anndata_${slug}.ipynb" \
-        -p combined_adata_path "$DIRNAME/${slug}_harmony_integrated.h5ad"
-	
-	jupyter nbconvert --to pdf --no-input \
-	    "$DIRNAME/inspect_integrated_anndata_${slug}.ipynb"
+	# Run papermill and nbconvert but don't let failures stop the entire job.
+	# Use explicit if/else so the script continues even if one of these steps fails.
+	if papermill "src/inspect_integrated_anndata.ipynb" \
+		"$DIRNAME/inspect_integrated_anndata_${slug}.ipynb" \
+		-p combined_adata_path "$DIRNAME/${slug}_harmony_integrated.h5ad"; then
+		echo "Papermill succeeded for ${slug}"
+	else
+		echo "Warning: papermill failed for ${slug}" >&2
+	fi
+
+	if jupyter nbconvert --to webpdf --no-input \
+		"$DIRNAME/inspect_integrated_anndata_${slug}.ipynb"; then
+		echo "nbconvert succeeded for ${slug}"
+	else
+		echo "Warning: nbconvert failed for ${slug}" >&2
+	fi
 
 	echo "---- Finished: $output_prefix ----"
 done
