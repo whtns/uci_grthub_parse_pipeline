@@ -13,5 +13,6 @@ slurm*
 *python/cache/*
 *.h5ad
 *.out
+*.err
 *.tar.gz
 *.zip
