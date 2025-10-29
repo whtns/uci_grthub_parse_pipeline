@@ -4,8 +4,8 @@
 #SBATCH -p standard
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=6G
+#SBATCH --cpus-per-task=8
+#SBATCH --mem-per-cpu=6G
 #SBATCH --time=08:00:00
 #SBATCH --error=snakemake_master.%j.err
 #SBATCH --output=snakemake_master.%j.out
