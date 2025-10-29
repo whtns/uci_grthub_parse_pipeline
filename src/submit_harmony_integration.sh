@@ -90,7 +90,7 @@ for output_prefix in "$@"; do
 		echo "Warning: papermill failed for ${slug}" >&2
 	fi
 
-	if jupyter nbconvert --to pdf --no-input \
+	if jupyter nbconvert --to webpdf --no-input \
 		"$DIRNAME/inspect_integrated_anndata_${slug}.ipynb"; then
 		echo "nbconvert succeeded for ${slug}"
 	else
