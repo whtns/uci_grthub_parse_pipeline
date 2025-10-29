@@ -1,0 +1,54 @@
+# Multi-sample configuration file for CellRanger Snakemake workflow
+
+# ENSEMBL_RELEASE=84
+# ENSEMBL_GRCh38_BASE=ftp://ftp.ensembl.org/pub/release-${ENSEMBL_RELEASE}/fasta/homo_sapiens/dna
+
+# Samples will be automatically detected from FASTQ files
+# No need to manually specify samples anymore
+
+# Input/Output paths
+paths:
+  fastqs: "data/FASTQ"  # Updated to use workspace relative path
+  output: "output"  # Output directory for all samples
+
+# Reference genome/transcriptome
+references:
+  # Human reference (default)
+  transcriptome: "/dfs8/commondata/cellranger/refdata-cellranger-GRCh38-3.0.0"
+  # Mouse reference (alternative)
+  # transcriptome: "/dfs8/commondata/cellranger/refdata-cellranger-mm10-1.2.0"
+  repeat_mask: "/dfs9/ucightf-lab/kstachel/kstachel_references/repeatmasker/Homo_sapiens_rm_refseq.out.gz"
+
+# CellRanger parameters
+params:
+  localcores: 8
+  localmem: 128  # GB
+
+## Scenic
+TFs: "/dfs9/ucightf-lab/kstachel/kstachel_references/scenic/hs_hgnc_curated_tfs.txt"
+motifs: "/dfs9/ucightf-lab/kstachel/kstachel_references/scenic/motifs-v9-nr.hgnc.tbl"
+feather_db: "/dfs9/ucightf-lab/kstachel/kstachel_references/scenic/hg38_refseq-10kb_up_and_down_tss.mc9nr.feather"
+
+## Parse
+parse_container: "/dfs7/singularity_containers/rcic/parsebio-1.0.3.sif"
+parse_transcriptome: "/dfs9/ucightf-lab/projects/REFERENCES/hg38"
+sample_list: "data/sample_list.txt"
+
+# Scanpy/scVI integration parameters
+min_genes: 300  # Minimum genes per cell for filtering
+min_cells: 5   # Minimum cells per gene for filtering
+n_top_genes: 2000  # Number of highly variable genes to select
+batch_key: "batch"  # Batch key for integration
+
+# Harmony integration parameters
+harmony_theta: 2  # Harmony diversity clustering penalty parameter
+harmony_dims: 30  # Number of dimensions to use for Harmony
+umap_dims: 30     # Number of dimensions to use for UMAP
+cluster_resolution: 0.5  # Resolution for Seurat clustering
+
+futures_max_size: 24000  # Maximum size for future globals in MB (e.g., 24e3 = 24GB)
+
+# Available references (for documentation)
+# Main directory: /dfs8/commondata/cellranger/
+# Human: refdata-cellranger-GRCh38-3.0.0 
+# Mouse: refdata-cellranger-mm10-1.2.0
