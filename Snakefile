@@ -46,13 +46,27 @@ def get_samples_from_config(config):
     
     samples = []
     with open(sample_list_file, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#'):  # Skip empty lines and comments
-                # Extract first column (sample name)
-                sample_name = line.split()[0] if line.split() else None
-                if sample_name:
-                    samples.append(sample_name)
+        for lineno, raw_line in enumerate(f, start=1):
+            # Preserve original line for error messages, but operate on a stripped copy
+            line = raw_line.strip()
+            if not line or line.startswith('#'):
+                # Skip empty lines and comments
+                continue
+
+            # Enforce at most one space character per non-empty, non-comment line.
+            # This avoids ambiguous formatting in the sample list and ensures the
+            # first column is unambiguous when we split on whitespace.
+            space_count = raw_line.count(' ')
+            if space_count > 1:
+                raise ValueError(
+                    f"Invalid format in {sample_list_file} at line {lineno}:"
+                    f" contains {space_count} spaces. Each non-empty line may contain at most one space."
+                    f" Offending line: '{raw_line.rstrip()}'")
+
+            # Extract first column (sample name)
+            sample_name = line.split()[0] if line.split() else None
+            if sample_name:
+                samples.append(sample_name)
     
     if not samples:
         raise ValueError(f"No samples found in {sample_list_file}")
@@ -188,10 +202,11 @@ rule multiqc:
 rule parse_all:
     input:
         r1 = lambda wildcards: get_fastq_files(wildcards, "R1"),
-        r2 = lambda wildcards: get_fastq_files(wildcards, "R2")
+        r2 = lambda wildcards: get_fastq_files(wildcards, "R2"),
+        sample_list = config["sample_list"]
     output:
         # all_summaries = f"{OUTPUT_DIR}/parse/{{sublibrary}}/all-sample_analysis_summary.html",
-        output_dir = dir(f"{OUTPUT_DIR}/parse/{{sublibrary}}")
+        output_dir = directory(f"{OUTPUT_DIR}/parse/{{sublibrary}}")
     conda: "parse"
     params:
         fastq_dir = FASTQ_DIR,
@@ -199,7 +214,7 @@ rule parse_all:
         localmem = config["params"]["localmem"],
         parse_container = config["parse_container"],
         parse_transcriptome = config["parse_transcriptome"],
-        sample_list = config["sample_list"]
+        
     threads: 8
     resources:
         mem_mb = 49152,  # 48GB in MB
@@ -220,7 +235,7 @@ rule parse_all:
         --fq2 {input.r2} \
         --output_dir {output.output_dir} \
         --nthreads {threads} \
-        --samp_list {params.sample_list}
+        --samp_list {input.sample_list}
         module unload singularity/3.11.3
         """
 
@@ -230,7 +245,7 @@ rule parse_comb:
         sublibraries = expand(f"{OUTPUT_DIR}/parse/{{sublibrary}}", sublibrary=SUBLIBRARIES)
     output:
         all_summaries = f"{OUTPUT_DIR}/parse_comb/all_summaries.zip",
-        output_dir = dir(f"{OUTPUT_DIR}/parse_comb")
+        output_dir = directory(f"{OUTPUT_DIR}/parse_comb")
     conda: "parse"
     params:
         fastq_dir = FASTQ_DIR,
