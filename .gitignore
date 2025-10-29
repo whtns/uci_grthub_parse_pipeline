@@ -16,3 +16,4 @@ slurm*
 *.err
 *.tar.gz
 *.zip
+results/
