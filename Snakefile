@@ -77,10 +77,10 @@ def get_samples_from_config(config):
 def get_sublibraries_from_fastq_dir(fastq_dir):
     """
     Automatically detect sample names from FASTQ files.
-    Assumes 10x Genomics naming convention: {sample}_S{N}_L{lane}_{R1,R2,I1,I2}_001.fastq.gz
+    Assumes Parse naming convention: {sample}_S{N}_L{lane}_{R1,R2,I1,I2}_001.fastq.gz
     """
     sublibraries = set()
-    pattern = os.path.join(fastq_dir, "*_S*_L*_R1_*.fastq.gz")
+    pattern = os.path.join(fastq_dir, "*", "*_S*_L*_R1_*.fastq.gz")
     
     for fastq_file in glob.glob(pattern):
         basename = os.path.basename(fastq_file)
@@ -91,7 +91,7 @@ def get_sublibraries_from_fastq_dir(fastq_dir):
             sublibraries.add(sample_name)
     
     if not sublibraries:
-        raise ValueError(f"No FASTQ files found in {fastq_dir} matching 10x Genomics naming pattern")
+        raise ValueError(f"No FASTQ files found in {fastq_dir} matching Parse naming pattern")
     
     return sorted(list(sublibraries))
 
@@ -148,7 +148,7 @@ rule all:
 def get_fastq_files(wildcards, read):
     """Get R1 or R2 FASTQ file for a sample"""
     import glob
-    pattern = f"{FASTQ_DIR}/{wildcards.sublibrary}_S*_L*_{read}_*.fastq.gz"
+    pattern = f"{FASTQ_DIR}/{wildcards.sublibrary}/{wildcards.sublibrary}_S*_L*_{read}_*.fastq.gz"
     files = glob.glob(pattern)
     if not files:
         raise ValueError(f"No {read} FASTQ files found for sample {wildcards.sublibrary}")
