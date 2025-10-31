@@ -80,6 +80,7 @@ else:
         adata.obs[args.batch_key] = sample_id
         adatas.append(adata)
     combined_adata = ad.concat(adatas, join='outer', uns_merge="first")
+    combined_adata.var_names_make_unique()
     combined_adata.write(combined_adata_path)
     del adatas
 

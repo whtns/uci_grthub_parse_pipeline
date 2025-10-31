@@ -307,7 +307,7 @@ rule parse_scvi_integration:
         """
 
 # Rule: Parse harmony integration with Seurat
-rule parse_harmony_integration:
+rule parse_harmony_integration_r:
     input:
         parse_comb_dir = f"{OUTPUT_DIR}/parse_comb"
     output:
@@ -350,6 +350,68 @@ rule parse_harmony_integration:
             --globals_max_size {params.futures_max_size}
         module unload R/4.4.2
         """
+
+# Rule: Parse scVI integration
+rule parse_harmony_integration_python:
+    input:
+        parse_comb_dir = f"{OUTPUT_DIR}/parse_comb"
+    output:
+        combined_adata = f"{OUTPUT_DIR}/scanpy/combined.h5ad",
+        integration_results = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
+    conda: "scvi-tools"
+    params:
+        script = "scripts/parse_harmony_integration.py",
+        min_genes = config.get("min_genes", 300),
+        min_cells = config.get("min_cells", 5),
+        n_top_genes = config.get("n_top_genes", 2000),
+        batch_key = config.get("batch_key", "batch"),
+        output_prefix = f"{OUTPUT_DIR}/scanpy/combined"
+    threads: 8
+    resources:
+        mem_mb = 32000,  # 32GB in MB
+        cpus = 8,
+        partition = "cpu",
+        account = "sbsandme_lab"
+    shell:
+        """
+        mkdir -p {OUTPUT_DIR}/scanpy
+        # cd {OUTPUT_DIR}/scanpy
+        python {params.script} \
+            --input_dir {input.parse_comb_dir} \
+            --output_prefix {params.output_prefix} \
+            --min_genes {params.min_genes} \
+            --min_cells {params.min_cells} \
+            --n_top_genes {params.n_top_genes} \
+            --batch_key {params.batch_key}
+        """
+
+# Rule: parse harmony notebook
+rule parse_harmony_notebook:
+    input:
+       integration_results = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
+    output:
+        integration_notebook = f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb"
+    conda: "scvi-tools"
+    params:
+        script = "src/submit_harmony_integration.sh",
+        input_dir = f"{OUTPUT_DIR}/cellranger",
+        min_genes = config.get("min_genes", 300),
+        min_cells = config.get("min_cells", 5),
+        n_top_genes = config.get("n_top_genes", 2000),
+        batch_key = config.get("batch_key", "batch"),
+        output_prefix = f"{OUTPUT_DIR}/scanpy/combined"
+    threads: 4
+    resources:
+        mem_mb = 32000,  # 32GB in MB
+        cpus = 8,
+        account = "sbsandme_lab"
+    shell:
+        """
+        mkdir -p {OUTPUT_DIR}/scanpy
+        echo {input.integration_results}
+        {params.script} --no-integration --min-genes {params.min_genes} {params.output_prefix}
+        """
+
 
 
 
