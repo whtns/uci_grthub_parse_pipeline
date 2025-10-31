@@ -48,6 +48,11 @@ cluster_resolution: 0.5  # Resolution for Seurat clustering
 
 futures_max_size: 24000  # Maximum size for future globals in MB (e.g., 24e3 = 24GB)
 
+# notebook_params
+groupby_var: "condition"
+group1_value: "treat"
+group2_value: "control"
+
 # Available references (for documentation)
 # Main directory: /dfs8/commondata/cellranger/
 # Human: refdata-cellranger-GRCh38-3.0.0 

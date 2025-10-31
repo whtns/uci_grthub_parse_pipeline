@@ -115,12 +115,11 @@ rule all:
         # expand(f"{OUTPUT_DIR}/parse/{{sublibrary}}/all-sample_analysis_summary.html", sublibrary=SUBLIBRARIES),
         f"{OUTPUT_DIR}/parse_comb/all_summaries.zip",
         # Parse scVI integration outputs
-        f"{OUTPUT_DIR}/scanpy/combined.h5ad",
-        f"{OUTPUT_DIR}/scanpy/combined_integrated.h5ad",
         # Parse Harmony integration outputs,
         seurat_obj = f"{OUTPUT_DIR}/seurat/parse_comb_harmony_integrated.rds",
         embeddings = f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
         plots = f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
+        integration_notebook = f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb"
         # f"{OUTPUT_DIR}/multi_sample_summary.txt",
         # MultiQC report
         # f"{OUTPUT_DIR}/multiqc_report.html",
@@ -207,7 +206,7 @@ rule parse_all:
     output:
         # all_summaries = f"{OUTPUT_DIR}/parse/{{sublibrary}}/all-sample_analysis_summary.html",
         output_dir = directory(f"{OUTPUT_DIR}/parse/{{sublibrary}}")
-    conda: "parse"
+    conda: "spipe"
     params:
         fastq_dir = FASTQ_DIR,
         localcores = config["params"]["localcores"],
@@ -225,7 +224,6 @@ rule parse_all:
     shell:
         """
         rm -rf {output.output_dir}
-        module load singularity/3.11.3
         split-pipe \
         --mode all \
         --kit WT \
@@ -236,7 +234,6 @@ rule parse_all:
         --output_dir {output.output_dir} \
         --nthreads {threads} \
         --samp_list {input.sample_list}
-        module unload singularity/3.11.3
         """
 
 # Rule: parse split-pipe for each sample
@@ -246,7 +243,7 @@ rule parse_comb:
     output:
         all_summaries = f"{OUTPUT_DIR}/parse_comb/all_summaries.zip",
         output_dir = directory(f"{OUTPUT_DIR}/parse_comb")
-    conda: "parse"
+    conda: "spipe"
     params:
         fastq_dir = FASTQ_DIR,
         localcores = config["params"]["localcores"],
@@ -278,7 +275,7 @@ rule parse_scvi_integration:
         parse_comb_dir = f"{OUTPUT_DIR}/parse_comb"
     output:
         combined_adata = f"{OUTPUT_DIR}/scanpy/combined.h5ad",
-        integration_results = f"{OUTPUT_DIR}/scanpy/combined_integrated.h5ad"
+        integration_results = f"{OUTPUT_DIR}/scanpy/combined_scvi_integrated.h5ad"
     conda: "scvi-tools"
     params:
         script = "scripts/parse_scvi_integration.py",
@@ -356,7 +353,6 @@ rule parse_harmony_integration_python:
     input:
         parse_comb_dir = f"{OUTPUT_DIR}/parse_comb"
     output:
-        combined_adata = f"{OUTPUT_DIR}/scanpy/combined.h5ad",
         integration_results = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
     conda: "scvi-tools"
     params:
@@ -399,7 +395,10 @@ rule parse_harmony_notebook:
         min_cells = config.get("min_cells", 5),
         n_top_genes = config.get("n_top_genes", 2000),
         batch_key = config.get("batch_key", "batch"),
-        output_prefix = f"{OUTPUT_DIR}/scanpy/combined"
+        output_prefix = f"{OUTPUT_DIR}/scanpy/combined",
+        groupby_var = config.get("condition", "condition"),
+        group1_value = config.get("group1_value", "treat"),
+        group2_value = config.get("group2_value", "control")
     threads: 4
     resources:
         mem_mb = 32000,  # 32GB in MB
@@ -409,7 +408,11 @@ rule parse_harmony_notebook:
         """
         mkdir -p {OUTPUT_DIR}/scanpy
         echo {input.integration_results}
-        {params.script} --no-integration --min-genes {params.min_genes} {params.output_prefix}
+        {params.script} --no-integration --min-genes {params.min_genes} \
+        --groupby_var {params.groupby_var} \
+        --group1_value {params.group1_value} \
+        --group2_value {params.group2_value} \
+        {params.output_prefix}
         """
 
 

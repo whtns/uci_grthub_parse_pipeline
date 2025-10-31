@@ -85,4 +85,4 @@ else:
 
 print(output_prefix)
 
-gt.process_with_scvi(combined_adata, output_prefix)
+gt.integrate_w_scvi(combined_adata, output_prefix)
