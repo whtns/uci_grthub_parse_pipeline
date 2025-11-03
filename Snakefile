@@ -116,32 +116,10 @@ rule all:
         f"{OUTPUT_DIR}/parse_comb/all_summaries.zip",
         # Parse scVI integration outputs
         # Parse Harmony integration outputs,
-        seurat_obj = f"{OUTPUT_DIR}/seurat/parse_comb_harmony_integrated.rds",
-        embeddings = f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
-        plots = f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
-        integration_notebook = f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb"
-        # f"{OUTPUT_DIR}/multi_sample_summary.txt",
-        # MultiQC report
-        # f"{OUTPUT_DIR}/multiqc_report.html",
-        # loompy outputs
-        # expand(f"{OUTPUT_DIR}/loom/{{sublibrary}}.loom", sublibrary=SUBLIBRARIES),
-        # scenic outputs
-        # expand(f"{OUTPUT_DIR}/scenic/{{sublibrary}}.loom", sublibrary=SUBLIBRARIES),
-        # # CellBender outputs
-        # expand(f"{OUTPUT_DIR}/cellbender/{{sublibrary}}_filtered.h5", sublibrary=SUBLIBRARIES),
-        # Scrublet outputs
-        # expand(f"{OUTPUT_DIR}/scrublet/{{sublibrary}}_doublets.csv", sublibrary=SUBLIBRARIES)
-        # # Seurat outputs
-        # expand(f"{OUTPUT_DIR}/seurat/{{sublibrary}}_seu.rds", sublibrary=SUBLIBRARIES),
-        # expand(f"{OUTPUT_DIR}/seurat/{{sublibrary}}_embeddings.csv", sublibrary=SUBLIBRARIES),
-        # # Velocyto outputs
-        # expand(f"{OUTPUT_DIR}/velocyto/{{sublibrary}}.loom", sublibrary=SUBLIBRARIES)
-        # # scVelo outputs
-        # expand(f"{OUTPUT_DIR}/scanpy/{{sublibrary}}_scvelo.h5ad", sublibrary=SUBLIBRARIES),
-        # # Pileup and phasing outputs
-        # expand(f"{OUTPUT_DIR}/numbat/{{sublibrary}}_allele_counts.tsv.gz", sublibrary=SUBLIBRARIES),
-        # # Numbat outputs
-        # expand(f"{OUTPUT_DIR}/numbat/{{sublibrary}}/done.txt", sublibrary=SUBLIBRARIES)
+        f"{OUTPUT_DIR}/seurat/parse_comb_harmony_integrated.rds",
+        f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
+        f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
+        f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb"
 
 # Helper function to get FASTQ files for a sample
 def get_fastq_files(wildcards, read):
@@ -386,7 +364,7 @@ rule parse_harmony_notebook:
     input:
        integration_results = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
     output:
-        integration_notebook = f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb"
+        f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb"
     conda: "scvi-tools"
     params:
         script = "src/submit_harmony_integration.sh",
@@ -408,15 +386,13 @@ rule parse_harmony_notebook:
         """
         mkdir -p {OUTPUT_DIR}/scanpy
         echo {input.integration_results}
-        {params.script} --no-integration --min-genes {params.min_genes} \
+        {params.script} --no-integration \
+        --min-genes {params.min_genes} \
         --groupby_var {params.groupby_var} \
         --group1_value {params.group1_value} \
         --group2_value {params.group2_value} \
         {params.output_prefix}
         """
-
-
-
 
 # Rule: Generate multi-sample summary
 rule multi_sample_summary:
