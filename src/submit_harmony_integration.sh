@@ -98,7 +98,8 @@ mamba activate scvi-tools
 for output_prefix in "$@"; do
 	echo "---- Running integration for: $output_prefix (min_genes=$MIN_GENES, groupby_var=$GROUPBY_VAR, group1_value=$GROUP1_VALUE, group2_value=$GROUP2_VALUE) ----"
 		if [[ "$RUN_INTEGRATION" == true ]]; then
-			python src/harmony_integration.py \
+			python src/parse_harmony_integration.py \
+				--input_dir output/parse \
 				--output_prefix "$output_prefix" \
 				--min_genes "$MIN_GENES"
 		else
