@@ -2,7 +2,12 @@ library(readxl)
 library(janitor)
 library(tidyverse)
 
-meta = sample_sheet = readxl::read_excel("data/SY 0825I-03_SparN_Recollect_Sample_Loading_Table_09042025 (CMY_FINAL)_withExperimental Explanations_NI.xlsm", sheet = 5)  |> 
-    clean_names()
+meta <- read_delim("data/sample_list.txt", delim = " ", col_names = c("sample", "wells")) |> 
+  dplyr::mutate(condition = case_when(
+    str_detect(sample, "differentiated") ~ "differentiated",
+    str_detect(sample, "ctrl") ~ "ctrl",
+    TRUE ~ "Unknown"
+  ))  |> 
+  identity()
 
 write_csv(meta, "data/metadata.csv")

@@ -20,8 +20,8 @@ MIN_GENES=200
 RUN_INTEGRATION=true
 # Defaults for papermill inspection parameters
 GROUPBY_VAR="condition"
-GROUP1_VALUE="treat"
-GROUP2_VALUE="control"
+GROUP1_VALUE="differentiated"
+GROUP2_VALUE="ctrl"
 
 # Simple argument parsing: allow optional --min_genes N followed by one or more output_prefix arguments
 while [[ $# -gt 0 ]]; do
