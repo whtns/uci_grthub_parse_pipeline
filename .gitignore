@@ -17,3 +17,6 @@ slurm*
 *.tar.gz
 *.zip
 results/
+
+# Local override for config — keep out of git
+config.local.yaml

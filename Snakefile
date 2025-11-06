@@ -17,7 +17,13 @@ import re
 
 
 # Load configuration
-configfile: "config.yaml"
+# Load primary config and optionally a local override (config.local.yaml) if present.
+import os
+_config_files = ["config.yaml"]
+_local_config = "config.local.yaml"
+if os.path.exists(_local_config):
+    _config_files.append(_local_config)
+configfile: _config_files
 
 # Extract sample list and configuration
 FASTQ_DIR = config["paths"]["fastqs"]
