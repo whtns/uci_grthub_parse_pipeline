@@ -20,8 +20,8 @@ MIN_GENES=200
 RUN_INTEGRATION=true
 # Defaults for papermill inspection parameters
 GROUPBY_VAR="condition"
-GROUP1_VALUE="treat"
-GROUP2_VALUE="control"
+GROUP1_VALUE="differentiated"
+GROUP2_VALUE="ctrl"
 
 # Simple argument parsing: allow optional --min_genes N followed by one or more output_prefix arguments
 while [[ $# -gt 0 ]]; do
@@ -98,7 +98,8 @@ mamba activate scvi-tools
 for output_prefix in "$@"; do
 	echo "---- Running integration for: $output_prefix (min_genes=$MIN_GENES, groupby_var=$GROUPBY_VAR, group1_value=$GROUP1_VALUE, group2_value=$GROUP2_VALUE) ----"
 		if [[ "$RUN_INTEGRATION" == true ]]; then
-			python src/harmony_integration.py \
+			python src/parse_harmony_integration.py \
+				--input_dir output/parse \
 				--output_prefix "$output_prefix" \
 				--min_genes "$MIN_GENES"
 		else

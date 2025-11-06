@@ -290,7 +290,7 @@ rule parse_scvi_integration:
         integration_results = f"{OUTPUT_DIR}/scanpy/combined_scvi_integrated.h5ad"
     conda: "scvi-tools"
     params:
-        script = "scripts/parse_scvi_integration.py",
+        script = "src/parse_scvi_integration.py",
         min_genes = config.get("min_genes", 300),
         min_cells = config.get("min_cells", 5),
         n_top_genes = config.get("n_top_genes", 2000),
@@ -324,7 +324,7 @@ rule parse_harmony_integration_r:
         embeddings = f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
         plots = f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf"
     params:
-        script = "scripts/parse_harmony_integration.R",
+        script = "src/parse_harmony_integration.R",
         min_genes = config.get("min_genes", 300),
         min_cells = config.get("min_cells", 5),
         n_top_genes = config.get("n_top_genes", 2000),
@@ -368,7 +368,7 @@ rule parse_harmony_integration_python:
         integration_results = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
     conda: "scvi-tools"
     params:
-        script = "scripts/parse_harmony_integration.py",
+        script = "src/parse_harmony_integration.py",
         min_genes = config.get("min_genes", 300),
         min_cells = config.get("min_cells", 5),
         n_top_genes = config.get("n_top_genes", 2000),
@@ -465,7 +465,7 @@ rule loompy:
 rule seurat:
     input:
         matrix_dir = f"{OUTPUT_DIR}/{{sublibrary}}/outs/filtered_feature_bc_matrix/",
-        script = "scripts/process_seurat.R"
+        script = "src/process_seurat.R"
     output:
         seu_path = f"{OUTPUT_DIR}/seurat/{{sublibrary}}_seu.rds"
     log:
@@ -479,7 +479,7 @@ rule seurat_embeddings:
     input:
         seu_path = f"{OUTPUT_DIR}/seurat/{{sublibrary}}_seu.rds",
         nb_path = f"{OUTPUT_DIR}/numbat/{{sublibrary}}_numbat.rds",
-        script = "scripts/save_seurat_embeddings.R"
+        script = "src/save_seurat_embeddings.R"
     output:
         seurat_embeddings = f"{OUTPUT_DIR}/seurat/{{sublibrary}}_embeddings.csv"
     log:
@@ -512,14 +512,14 @@ rule scvelo:
         scvelo_h5ad = f"{OUTPUT_DIR}/scanpy/{{sublibrary}}_scvelo.h5ad"
     threads: 2
     shell:
-        '''python scripts/compute_velocity.py {input.anndata_file} {input.loom_file} {input.seurat_embeddings}'''
+        '''python src/compute_velocity.py {input.anndata_file} {input.loom_file} {input.seurat_embeddings}'''
 
 # Rule: pileup and phasing
 rule pileup_and_phasing:
     input:
         bam = f"{OUTPUT_DIR}/{{sublibrary}}/outs/possorted_genome_bam.bam",
         barcodes = f"{OUTPUT_DIR}/{{sublibrary}}/outs/filtered_feature_bc_matrix/barcodes.tsv.gz",
-        script = "scripts/pileup_and_phase.R"
+        script = "src/pileup_and_phase.R"
     output:
         allele_df = f"{OUTPUT_DIR}/numbat/{{sublibrary}}_allele_counts.tsv.gz"
     threads: 4
@@ -532,7 +532,7 @@ rule numbat:
         allele_df = f"{OUTPUT_DIR}/numbat/{{sublibrary}}_allele_counts.tsv.gz",
         matrix_file = f"{OUTPUT_DIR}/{{sublibrary}}/outs/filtered_feature_bc_matrix/matrix.mtx.gz",
         seu_path = f"{OUTPUT_DIR}/seurat/{{sublibrary}}_seu.rds",
-        script = "scripts/run_numbat.R"
+        script = "src/run_numbat.R"
     output:
         done_file = f"{OUTPUT_DIR}/numbat/{{sublibrary}}/done.txt"
     threads: 4
@@ -580,7 +580,7 @@ rule scrublet:
         cpus = 2,
         partition = "standard"
     params:
-        script = "scripts/run_scrublet.py"
+        script = "src/run_scrublet.py"
     shell:
         """
         mkdir -p {OUTPUT_DIR}/scrublet

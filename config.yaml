@@ -35,7 +35,7 @@ parse_transcriptome: "/dfs9/ucightf-lab/kstachel/TOOLS/REFERENCES/human/split-pi
 sample_list: "data/sample_list.txt"
 
 # Scanpy/scVI integration parameters
-min_genes: 300  # Minimum genes per cell for filtering
+min_genes: 200  # Minimum genes per cell for filtering
 min_cells: 5   # Minimum cells per gene for filtering
 n_top_genes: 2000  # Number of highly variable genes to select
 batch_key: "batch"  # Batch key for integration
