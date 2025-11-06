@@ -17,7 +17,12 @@ import re
 
 
 # Load configuration
+# Load primary config and optionally a local override (config.local.yaml) if present.
+import os
 configfile: "config.yaml"
+_local_config = "config.local.yaml"
+if os.path.exists(_local_config):
+    configfile: _local_config
 
 # Extract sample list and configuration
 FASTQ_DIR = config["paths"]["fastqs"]
@@ -116,6 +121,7 @@ rule all:
         f"{OUTPUT_DIR}/parse_comb/all_summaries.zip",
         # Parse scVI integration outputs
         # Parse Harmony integration outputs,
+        "data/merged_mm10_reference",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_integrated.rds",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
@@ -245,6 +251,34 @@ rule parse_comb:
         --output_dir {output.output_dir} \
         --sublibraries {input.sublibraries} \
         --nthreads {threads}
+        """
+
+# Rule: create a Parse reference (mkref)
+rule parse_mkref:
+    input:
+        fasta = config.get("mkref", {}).get("fasta", "data/merged_mm10_reference.fa"),
+        genes = config.get("mkref", {}).get("genes", "data/merged_mm10_reference.gtf")
+    output:
+        ref_dir = directory(config.get("mkref", {}).get("output_dir", "data/merged_mm10_reference"))
+    conda: "spipe"
+    params:
+        genome_name = config.get("mkref", {}).get("genome_name", "merged_mm10_reference")
+    threads: 16
+    resources:
+        mem_mb = 96000,
+        cpus = 16,
+        partition = "standard",
+        account = "sbsandme_lab"
+    shell:
+        """
+        mkdir -p {output.ref_dir}
+        split-pipe \
+        --mode mkref \
+        --genome_name {params.genome_name} \
+        --fasta {input.fasta} \
+        --genes {input.genes} \
+        --nthreads {threads} \
+        --output_dir {output.ref_dir}
         """
 
 # Rule: Parse scVI integration

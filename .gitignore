@@ -17,3 +17,9 @@ slurm*
 *.tar.gz
 *.zip
 results/
+data/weblinks.txt
+data/checksums.md5
+data/md5_checked.txt
+
+# Local override for config — keep out of git
+config.local.yaml

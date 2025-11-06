@@ -31,7 +31,7 @@ feather_db: "/dfs9/ucightf-lab/kstachel/kstachel_references/scenic/hg38_refseq-1
 
 ## Parse
 parse_container: "/dfs7/singularity_containers/rcic/parsebio-1.0.3.sif"
-parse_transcriptome: "/dfs9/ucightf-lab/projects/REFERENCES/hg38"
+parse_transcriptome: "/dfs9/ucightf-lab/kstachel/TOOLS/REFERENCES/human/split-pipe/hg38"
 sample_list: "data/sample_list.txt"
 
 # Scanpy/scVI integration parameters

@@ -109,6 +109,13 @@ read_parse_data <- function(data_dir) {
 
 # Find all sample directories with Parse output
 sample_dirs <- list.dirs(args$input_dir, recursive = FALSE)
+
+# Exclude combined/summary directory created by some pipelines (named 'all-sample')
+# that should not be treated as an individual sample directory.
+if (length(sample_dirs) > 0) {
+  sample_dirs <- sample_dirs[basename(sample_dirs) != "all-sample"]
+}
+
 sample_dirs <- sample_dirs[sapply(sample_dirs, function(x) {
   dir.exists(file.path(x, "DGE_filtered"))
 })]
