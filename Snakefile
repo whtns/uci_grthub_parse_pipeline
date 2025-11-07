@@ -117,11 +117,11 @@ rule all:
         # CellRanger outputs
         # expand(f"{OUTPUT_DIR}/cellranger/{{sublibrary}}/outs/web_summary.html", sublibrary=SUBLIBRARIES),
         # expand(f"{OUTPUT_DIR}/cellranger/{{sublibrary}}/outs/filtered_feature_bc_matrix.h5", sublibrary=SUBLIBRARIES),
-        # expand(f"{OUTPUT_DIR}/parse/{{sublibrary}}/all-sample_analysis_summary.html", sublibrary=SUBLIBRARIES),
+        expand(f"{OUTPUT_DIR}/parse/{{sublibrary}}/all-sample_analysis_summary.html", sublibrary=SUBLIBRARIES),
         f"{OUTPUT_DIR}/parse_comb/all_summaries.zip",
         # Parse scVI integration outputs
         # Parse Harmony integration outputs,
-        "data/merged_mm10_reference",
+        # "data/merged_mm10_reference",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_integrated.rds",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
@@ -135,7 +135,7 @@ def get_fastq_files(wildcards, read):
     files = glob.glob(pattern)
     if not files:
         raise ValueError(f"No {read} FASTQ files found for sample {wildcards.sublibrary}")
-    return files[0]  # Return first match
+    return files  # Return first match
 
 # Rule: FastQC on raw FASTQ files
 rule fastqc:
@@ -188,7 +188,7 @@ rule parse_all:
         r2 = lambda wildcards: get_fastq_files(wildcards, "R2"),
         sample_list = config["sample_list"]
     output:
-        # all_summaries = f"{OUTPUT_DIR}/parse/{{sublibrary}}/all-sample_analysis_summary.html",
+        all_summaries = f"{OUTPUT_DIR}/parse/{{sublibrary}}/all-sample_analysis_summary.html",
         output_dir = directory(f"{OUTPUT_DIR}/parse/{{sublibrary}}")
     conda: "spipe"
     params:
@@ -196,8 +196,7 @@ rule parse_all:
         localcores = config["params"]["localcores"],
         localmem = config["params"]["localmem"],
         parse_container = config["parse_container"],
-        parse_transcriptome = config["parse_transcriptome"],
-        
+        parse_transcriptome = config["parse_transcriptome"]
     threads: 8
     resources:
         mem_mb = 49152,  # 48GB in MB
@@ -223,7 +222,8 @@ rule parse_all:
 # Rule: parse split-pipe for each sample
 rule parse_comb:
     input:
-        sublibraries = expand(f"{OUTPUT_DIR}/parse/{{sublibrary}}", sublibrary=SUBLIBRARIES)
+        sublibraries = expand(f"{OUTPUT_DIR}/parse/{{sublibrary}}", sublibrary=SUBLIBRARIES),
+        # output_dir = directory(f"{OUTPUT_DIR}/parse/{{sublibrary}}")
     output:
         all_summaries = f"{OUTPUT_DIR}/parse_comb/all_summaries.zip",
         output_dir = directory(f"{OUTPUT_DIR}/parse_comb")
