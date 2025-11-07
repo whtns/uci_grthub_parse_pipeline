@@ -1,3 +1,5 @@
+*.Rproj
+*.pyc
 .Rproj.user
 .Rhistory
 .RData
@@ -20,6 +22,6 @@ results/
 data/weblinks.txt
 data/checksums.md5
 data/md5_checked.txt
-
+metadata/
 # Local override for config — keep out of git
 config.local.yaml
