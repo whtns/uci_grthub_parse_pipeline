@@ -121,7 +121,7 @@ rule all:
         f"{OUTPUT_DIR}/parse_comb/all_summaries.zip",
         # Parse scVI integration outputs
         # Parse Harmony integration outputs,
-        "data/merged_mm10_reference",
+        # "data/merged_mm10_reference",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_integrated.rds",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
@@ -374,11 +374,11 @@ rule parse_harmony_integration_python:
         n_top_genes = config.get("n_top_genes", 2000),
         batch_key = config.get("batch_key", "batch"),
         output_prefix = f"{OUTPUT_DIR}/scanpy/combined"
-    threads: 8
+    threads: 16
     resources:
-        mem_mb = 32000,  # 32GB in MB
-        cpus = 8,
-        partition = "cpu",
+        mem_mb = 240000,  # 32GB in MB
+        cpus = 16,
+        partition = "hugemem",
         account = "sbsandme_lab"
     shell:
         """
