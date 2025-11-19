@@ -428,6 +428,47 @@ rule parse_harmony_notebook:
         {params.output_prefix}
         """
 
+rule convert_harmony_integrated_h5ad_to_rds:
+    input:
+        h5ad = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
+    output:
+        rds = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.rds"
+    params:
+        script = "src/convert_h5ad_to_rds.R"
+    threads: 2
+    shell:
+        '''
+        module load R/4.3.3
+        Rscript {params.script} --input_h5ad {input.h5ad} --output_rds {output.rds}
+        module unload R/4.3.3
+        '''
+
+rule build_seurat5shiny:
+    input:
+        rds = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.rds",
+        integration_results = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
+    output:
+        scale_data_dir = directory(f"{OUTPUT_DIR}/scaled_data"),
+        shiny_dir = directory(f"{OUTPUT_DIR}/Seurat5Shiny/{PROJECT_DIR_NAME}")
+    params:
+        python_script = "src/pull_scaled_data.py",
+        r_script = "src/append_scaledata.R",
+        output_prefix = f"{OUTPUT_DIR}/scanpy/scaled_data"
+    threads: 16
+    resource:
+        mem_mb = 96000,  # 96GB in MB
+        cpus = 16,
+        partition = "standard",
+    shell:
+        '''
+        # {params.python_script} {input.integration_results}
+        # {params.r_script} {params.output_prefix} 
+        cp -r /dfs9/ucightf-lab/kstachel/Seurat5Shiny {output.shiny_dir}
+        echo {PROJECT_DIR_NAME} > {output.shiny_dir}/title.txt
+        cp rds {input.rds} {output.shiny_dir}/seurat5.rds
+        date > {output.shiny_dir}/restart.txt
+        '''
+
 # Rule: Generate multi-sample summary
 rule multi_sample_summary:
     input:
