@@ -127,7 +127,8 @@ rule all:
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_integrated.rds",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
         f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
-        f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb"
+        f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb",
+        f"{OUTPUT_DIR}/Seurat5Shiny/{PROJECT_DIR_NAME}"
 
 # Helper function to get FASTQ files for a sample
 def get_fastq_files(wildcards, read):

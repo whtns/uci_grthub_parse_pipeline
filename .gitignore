@@ -25,3 +25,5 @@ data/md5_checked.txt
 metadata/
 # Local override for config — keep out of git
 config.local.yaml
+src/inspect_integrated_anndata_bp.ipynb
+src/inspect_integrated_anndata_nonbp.ipynb
