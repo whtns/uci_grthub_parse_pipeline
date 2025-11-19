@@ -410,7 +410,8 @@ rule parse_harmony_notebook:
         output_prefix = f"{OUTPUT_DIR}/scanpy/combined",
         groupby_var = config.get("condition", "condition"),
         group1_value = config.get("group1_value", "treat"),
-        group2_value = config.get("group2_value", "control")
+        group2_value = config.get("group2_value", "control"),
+        notebook = config["notebooks"]["harmony_integration_notebook"]
     threads: 4
     resources:
         mem_mb = 32000,  # 32GB in MB
@@ -425,6 +426,7 @@ rule parse_harmony_notebook:
         --groupby_var {params.groupby_var} \
         --group1_value {params.group1_value} \
         --group2_value {params.group2_value} \
+        --notebook {params.notebook} \
         {params.output_prefix}
         """
 
