@@ -29,16 +29,24 @@ def main():
 		raise FileNotFoundError(f"AnnData file not found: {adata_path}")
 
 	meta_path = Path(args.metadatapath)
-	if not meta_path.exists():
-		raise FileNotFoundError(f"Metadata CSV file not found: {meta_path}")
+	metadata = None
+	if meta_path.exists():
+		metadata = pd.read_csv(str(meta_path), index_col=0)
+	else:
+		print(f"Metadata CSV not found at {meta_path}; continuing without metadata.")
 
 	adata = sc.read_h5ad(str(adata_path))
-	metadata = pd.read_csv(str(meta_path), index_col=0)
 
-	# Merge metadata into adata.obs. Keep original index unless merge changes it.
-	merged = adata.obs.merge(metadata, left_on="sample", right_on="sample", how="left")
-	# Assign merged dataframe back to adata.obs
-	adata.obs = merged
+	if metadata is not None:
+		# Try to merge on 'sample' column if present, otherwise align by index
+		if "sample" in metadata.columns:
+			merged = adata.obs.merge(metadata, left_on="sample", right_on="sample", how="left")
+		else:
+			metadata = metadata.reindex(adata.obs.index)
+			merged = adata.obs.join(metadata)
+		adata.obs = merged
+	else:
+		print("No metadata provided; leaving adata.obs unchanged.")
 
 	adata.write(adata_path)
 

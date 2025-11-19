@@ -28,6 +28,8 @@ if os.path.exists(_local_config):
 FASTQ_DIR = config["paths"]["fastqs"]
 TRANSCRIPTOME = config["references"]["transcriptome"]
 OUTPUT_DIR = config["paths"]["output"]
+# Optional project directory name used when building the Seurat5Shiny bundle
+PROJECT_DIR_NAME = config.get("project_dir_name", "parse_comb")
 
 # Function to retrieve sample names from config sample_list file
 def get_samples_from_config(config):
@@ -455,19 +457,19 @@ rule build_seurat5shiny:
         r_script = "src/append_scaledata.R",
         output_prefix = f"{OUTPUT_DIR}/scanpy/scaled_data"
     threads: 16
-    resource:
+    resources:
         mem_mb = 96000,  # 96GB in MB
         cpus = 16,
         partition = "standard",
     shell:
-        '''
+        """
         # {params.python_script} {input.integration_results}
         # {params.r_script} {params.output_prefix} 
         cp -r /dfs9/ucightf-lab/kstachel/Seurat5Shiny {output.shiny_dir}
         echo {PROJECT_DIR_NAME} > {output.shiny_dir}/title.txt
-        cp rds {input.rds} {output.shiny_dir}/seurat5.rds
+        cp {input.rds} {output.shiny_dir}/seurat5.rds
         date > {output.shiny_dir}/restart.txt
-        '''
+        """
 
 # Rule: Generate multi-sample summary
 rule multi_sample_summary:
