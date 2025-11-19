@@ -2,10 +2,8 @@
 # coding: utf-8
 # # Integrate (batch correct) single cell datasets with scanpy and scvi-tools
 
-# %% [markdown]
 # ## load required packages
 
-# %%
 import scanpy as sc
 import scanpy.external as sce
 from pathlib import Path
@@ -19,19 +17,14 @@ import grthub_tools as gt
 import scvi
 
 
-# %% [markdown]
 # ## set scanpy default display settings 
 
-# %%
 sc.settings.verbosity = 1 # verbosity: errors (0), warnings (1), info (2), hints (3)
 sc.settings.set_figure_params(dpi=100, fontsize=10, dpi_save=300, figsize=(5,4), format='png')
 
-# %% [markdown]
 # ## load parse output directories for all samples
 # https://support.parsebiosciences.com/hc/en-us/articles/360052794312-Scanpy-Tutorial-65k-PBMCs
-# 
 
-# %%
 
 # Parse command line arguments
 
