@@ -14,7 +14,7 @@ def main():
 	args = parser.parse_args()
 
 	in_path = args.input
-	out_path = args.counts_output
+	out_path = args.data_output
 
 	# If running under Snakemake, allow using snakemake.input/output when args omitted
 	if (in_path is None) or (out_path is None):
