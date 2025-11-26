@@ -455,7 +455,7 @@ rule save_raw_adata:
 
 rule convert_harmony_integrated_h5ad_to_rds:
     input:
-        adata = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated_data.h5ad"
+        adata = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
     output:
         rds = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.rds"
     params:
