@@ -203,7 +203,7 @@ rule parse_all:
         parse_transcriptome = config["parse_transcriptome"]
     threads: 8
     resources:
-        mem_mb = 49152,  # 48GB in MB
+        mem_mb = 48000,  # 48GB in MB
         mem_mb_per_cpu=6000,
         cpus = 8,
         partition = "standard",
