@@ -14,6 +14,9 @@ if (!file.exists(seurat_input)) {
 }
 seu <- readRDS(seurat_input)
 
+# replace feature metadata underscores with dashes to match gene names in the data layer 
+rownames(seu$RNA@meta.features) = str_replace(rownames(seu$RNA@meta.features), "_", "-")
+
 seu <- FindVariableFeatures(seu, selection.method = "vst")
 seu <- ScaleData(seu, features = VariableFeatures(seu), block.size = 200)
 # Save the modified Seurat object
