@@ -127,6 +127,7 @@ rule all:
         # f"{OUTPUT_DIR}/seurat/parse_comb_harmony_integrated.rds",
         # f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
         # f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
+        f"{OUTPUT_DIR}/scanpy/combined.h5ad",
         f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb",
         f"{OUTPUT_DIR}/Seurat5Shiny/{PROJECT_DIR_NAME}"
 
@@ -289,7 +290,6 @@ rule parse_scvi_integration:
     input:
         parse_comb_dir = f"{OUTPUT_DIR}/parse_comb"
     output:
-        combined_adata = f"{OUTPUT_DIR}/scanpy/combined.h5ad",
         integration_results = f"{OUTPUT_DIR}/scanpy/combined_scvi_integrated.h5ad"
     conda: "scvi-tools"
     params:
@@ -368,6 +368,7 @@ rule parse_harmony_integration_python:
     input:
         parse_comb_dir = f"{OUTPUT_DIR}/parse_comb"
     output:
+        combined_adata = f"{OUTPUT_DIR}/scanpy/combined.h5ad",
         integration_results = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
     conda: "scvi-tools"
     params:
