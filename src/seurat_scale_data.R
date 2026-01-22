@@ -1,0 +1,24 @@
+#!/usr/bin/env Rscript
+library(Seurat)
+library(Matrix)
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) < 2) {
+    stop("Usage: Rscript src/seurat_scale_data.R INPUT OUTPUT")
+}   
+
+seurat_input <- args[1]
+seurat_output <- args[2]
+
+if (!file.exists(seurat_input)) {
+    stop(paste("Seurat RDS input not found:", seurat_input))
+}
+seu <- readRDS(seurat_input)
+
+# replace feature metadata underscores with dashes to match gene names in the data layer
+# use base R to avoid depending on stringr
+rownames(seu$RNA@meta.features) <- gsub("_", "-", rownames(seu$RNA@meta.features))
+
+seu <- FindVariableFeatures(seu, selection.method = "vst")
+seu <- ScaleData(seu, features = VariableFeatures(seu), block.size = 200)
+# Save the modified Seurat object
+saveRDS(seu, seurat_output)

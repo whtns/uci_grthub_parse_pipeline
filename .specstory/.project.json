@@ -1,6 +1,12 @@
 {
+<<<<<<< HEAD
   "workspace_id": "bff5-ef3c-d832-4065",
   "workspace_id_at": "2026-01-22T22:16:18.228Z",
   "project_name": "251028_BreuJ_parse",
+=======
+  "workspace_id": "0731-651a-7f55-1c55",
+  "workspace_id_at": "2026-01-22T22:07:31.555Z",
+  "project_name": "251017_SparN_parse",
+>>>>>>> feb6400be47b229a6a070876ef01f9808f248a00
   "cloud_sync": false
 }

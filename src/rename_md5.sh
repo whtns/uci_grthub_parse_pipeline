@@ -55,7 +55,7 @@ awk_prog='BEGIN{ OFS="  " }
   gsub(/^ +| +$/, "", fname)
   if (match(fname, /(.*)_S[0-9]+_L[0-9]{3}_[RI][12]_001.fastq.gz$/, arr)) {
     sample=arr[1]
-    newfname = sample "/" fname
+    newfname = "FASTQ/" sample "/" fname
     if (replace == "true") {
       gsub(/_R1_/, "_I1_", newfname)
       gsub(/_R2_/, "_I2_", newfname)

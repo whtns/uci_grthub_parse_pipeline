@@ -22,6 +22,7 @@ RUN_INTEGRATION=true
 GROUPBY_VAR="condition"
 GROUP1_VALUE="differentiated"
 GROUP2_VALUE="ctrl"
+NOTEBOOK="src/inspect_integrated_anndata.ipynb"
 
 # Simple argument parsing: allow optional --min_genes N followed by one or more output_prefix arguments
 while [[ $# -gt 0 ]]; do
@@ -58,6 +59,14 @@ while [[ $# -gt 0 ]]; do
 				GROUP2_VALUE="$2"
 				shift 2
 				;;
+			--notebook|--notebook-file)
+				if [[ -z "${2:-}" ]]; then
+					echo "Error: value required for $1" >&2
+					exit 2
+				fi
+				NOTEBOOK="$2"
+				shift 2
+				;;
 		--no-integration)
 			# Do not run the python integration step; continue with downstream steps
 			RUN_INTEGRATION=false
@@ -66,7 +75,7 @@ while [[ $# -gt 0 ]]; do
 		--help|-h)
 			echo "Usage: $0 [--min_genes N] [--groupby_var VAR] [--group1_value VAL] [--group2_value VAL] output_prefix [output_prefix ...]"
 			echo
-			echo "Runs src/harmony_integration.py for each provided output_prefix."
+			echo "Runs src/harmony_integration.py for each provided output_prefix and then runs a papermill notebook for inspection."
 			echo
 			echo "Example prefixes:" 
 			echo "  output/scanpy/output-XETG00221__0069979__Adult_cohort__20251003__181017/control"
@@ -111,7 +120,7 @@ for output_prefix in "$@"; do
 
 	# Run papermill and nbconvert but don't let failures stop the entire job.
 	# Use explicit if/else so the script continues even if one of these steps fails.
-	if papermill "src/inspect_integrated_anndata.ipynb" \
+	if papermill "$NOTEBOOK" \
 		"$DIRNAME/inspect_integrated_anndata_${slug}.ipynb" \
 		-p combined_adata_path "$DIRNAME/${slug}_harmony_integrated.h5ad" \
 		-p groupby_var "$GROUPBY_VAR" \

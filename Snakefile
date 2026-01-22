@@ -28,6 +28,8 @@ if os.path.exists(_local_config):
 FASTQ_DIR = config["paths"]["fastqs"]
 TRANSCRIPTOME = config["references"]["transcriptome"]
 OUTPUT_DIR = config["paths"]["output"]
+# Optional project directory name used when building the Seurat5Shiny bundle
+PROJECT_DIR_NAME = config.get("project_dir_name", "parse_comb")
 
 # Function to retrieve sample names from config sample_list file
 def get_samples_from_config(config):
@@ -122,10 +124,12 @@ rule all:
         # Parse scVI integration outputs
         # Parse Harmony integration outputs,
         # "data/merged_mm10_reference",
-        f"{OUTPUT_DIR}/seurat/parse_comb_harmony_integrated.rds",
-        f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
-        f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
-        f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb"
+        # f"{OUTPUT_DIR}/seurat/parse_comb_harmony_integrated.rds",
+        # f"{OUTPUT_DIR}/seurat/parse_comb_harmony_embeddings.csv",
+        # f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
+        f"{OUTPUT_DIR}/scanpy/combined.h5ad",
+        f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb",
+        f"{OUTPUT_DIR}/Seurat5Shiny/{PROJECT_DIR_NAME}"
 
 # Helper function to get FASTQ files for a sample
 def get_fastq_files(wildcards, read):
@@ -199,7 +203,7 @@ rule parse_all:
         parse_transcriptome = config["parse_transcriptome"]
     threads: 8
     resources:
-        mem_mb = 49152,  # 48GB in MB
+        mem_mb = 48000,  # 48GB in MB
         mem_mb_per_cpu=6000,
         cpus = 8,
         partition = "standard",
@@ -286,7 +290,6 @@ rule parse_scvi_integration:
     input:
         parse_comb_dir = f"{OUTPUT_DIR}/parse_comb"
     output:
-        combined_adata = f"{OUTPUT_DIR}/scanpy/combined.h5ad",
         integration_results = f"{OUTPUT_DIR}/scanpy/combined_scvi_integrated.h5ad"
     conda: "scvi-tools"
     params:
@@ -365,6 +368,7 @@ rule parse_harmony_integration_python:
     input:
         parse_comb_dir = f"{OUTPUT_DIR}/parse_comb"
     output:
+        combined_adata = f"{OUTPUT_DIR}/scanpy/combined.h5ad",
         integration_results = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
     conda: "scvi-tools"
     params:
@@ -410,7 +414,8 @@ rule parse_harmony_notebook:
         output_prefix = f"{OUTPUT_DIR}/scanpy/combined",
         groupby_var = config.get("condition", "condition"),
         group1_value = config.get("group1_value", "treat"),
-        group2_value = config.get("group2_value", "control")
+        group2_value = config.get("group2_value", "control"),
+        notebook = config["notebooks"]["harmony_integration_notebook"]
     threads: 4
     resources:
         mem_mb = 32000,  # 32GB in MB
@@ -425,8 +430,76 @@ rule parse_harmony_notebook:
         --groupby_var {params.groupby_var} \
         --group1_value {params.group1_value} \
         --group2_value {params.group2_value} \
+        --notebook {params.notebook} \
         {params.output_prefix}
         """
+
+rule save_raw_adata:
+    input:
+        combined_adata = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
+    output:
+        adata = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated_data.h5ad",
+        scale_data_adata = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated_scale_data.h5ad"
+    threads: 20
+    params:
+        script = "src/save_raw_adata.py"
+    resources:
+        mem_mb = 320000,  # 300GB in MB
+        partition = "hugemem",
+        cpus = 20,
+        account = "sbsandme_lab"
+    shell:
+        '''
+        {params.script} {input.combined_adata} {output.adata} {output.scale_data_adata}
+        '''
+
+rule convert_harmony_integrated_h5ad_to_rds:
+    input:
+        adata = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.h5ad"
+    output:
+        rds = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.rds"
+    params:
+        script = "src/convert_h5ad_to_seurat.R",
+        output_prefix = f"scaled_data"
+    threads: 20
+    resources:
+        mem_mb = 320000,  # 300GB in MB
+        partition = "hugemem",
+        cpus = 20,
+        account = "sbsandme_lab"
+    shell:
+        '''
+        module load R/4.3.3 
+        Rscript {params.script} --data {input.adata} --output {output.rds}
+        module unload R/4.3.3
+        '''
+
+rule build_seurat5shiny:
+    input:
+        rds = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated.rds",
+        scale_data_adata = f"{OUTPUT_DIR}/scanpy/combined_harmony_integrated_scale_data.h5ad"
+    output:
+        shiny_dir = directory(f"{OUTPUT_DIR}/Seurat5Shiny/{PROJECT_DIR_NAME}"),
+        rds = f"{OUTPUT_DIR}/Seurat5Shiny/{PROJECT_DIR_NAME}/seurat5.rds"
+    params:
+        app_title = config.get("shiny_app", {}).get("title", PROJECT_DIR_NAME),
+        r_script = "src/seurat_scale_data.R",
+    threads: 20
+    resources:
+        mem_mb = 320000,  # 300GB in MB
+        partition = "hugemem",
+        cpus = 20,
+        account = "sbsandme_lab"
+    shell:
+        '''
+        module load R/4.3.3 
+        mkdir -p {OUTPUT_DIR}/Seurat5Shiny
+        cp -r /dfs9/ucightf-lab/kstachel/Seurat5Shiny {output.shiny_dir}
+        echo {params.app_title} > {output.shiny_dir}/title.txt
+        date > {output.shiny_dir}/restart.txt
+        {params.r_script} {input.rds} {output.rds}  
+        module unload R/4.3.3 
+        '''
 
 # Rule: Generate multi-sample summary
 rule multi_sample_summary:
