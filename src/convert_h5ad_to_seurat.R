@@ -86,9 +86,6 @@ try({
 
 
 message("Converting: ", data_file, " -> ", output_file)
-
-# perform conversion
-message("Converting counts AnnData: ", data_file, " -> ", output_file)
 sceasy::convertFormat(data_file, from = "anndata", to = "seurat", outFile = output_file, main_layer = "data")
 
 if (!is.null(scaled_data_file) && nzchar(scaled_data_file) && file.exists(scaled_data_file)) {
