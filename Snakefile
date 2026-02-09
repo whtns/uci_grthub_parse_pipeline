@@ -107,8 +107,8 @@ SUBLIBRARIES = get_sublibraries_from_fastq_dir(FASTQ_DIR)
 
 SAMPLES = get_samples_from_config(config)
 
-print(f"Detected sublibraries: {SUBLIBRARIES}")
-print(f"Detected samples: {SAMPLES}")
+print(f"Detected sublibraries: {SUBLIBRARIES}", file=sys.stderr)
+print(f"Detected samples: {SAMPLES}", file=sys.stderr)
 
 # Rule all - defines final outputs for all samples
 rule all:

@@ -8,6 +8,8 @@ This repository provides a comprehensive Snakemake-based workflow for analyzing 
 - **Modular Design:** Workflows are organized into rule files and scripts for flexible, reproducible analysis.
 - **HPC Support:** Resource requirements and SLURM integration for large-scale data processing.
 
+![The workflow](rulegraph.png)
+
 ## Directory Structure
 - `Snakefile_cellranger`, `Snakefile_cellranger_multi`: Main Snakemake workflows.
 - `config_cellranger.yaml`, `config_cellranger_multi.yaml`: Configuration files for sample lists and paths.
