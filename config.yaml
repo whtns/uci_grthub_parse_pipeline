@@ -8,7 +8,7 @@
 
 # Input/Output paths
 paths:
-  fastqs: "data/FASTQ"  # Updated to use workspace relative path
+  fastqs: "/share/crsp/lab/ccbs/share/project_2/Linh/Parse_seq_tumors_DARLN_2026"  # Updated to use workspace relative path
   output: "output"  # Output directory for all samples
 
 # Reference genome/transcriptome
@@ -23,6 +23,7 @@ references:
 params:
   localcores: 8
   localmem: 128  # GB
+  kit: "WT_mega"
 
 ## Scenic
 TFs: "/dfs9/ucightf-lab/kstachel/kstachel_references/scenic/hs_hgnc_curated_tfs.txt"
@@ -32,7 +33,7 @@ feather_db: "/dfs9/ucightf-lab/kstachel/kstachel_references/scenic/hg38_refseq-1
 ## Parse
 parse_container: "/dfs7/singularity_containers/rcic/parsebio-1.0.3.sif"
 parse_transcriptome: "/dfs9/ucightf-lab/kstachel/TOOLS/REFERENCES/human/split-pipe/hg38"
-sample_list: "data/sample_list.txt"
+sample_list: "metadata/sample_list.txt"
 
 # Scanpy/scVI integration parameters
 min_genes: 200  # Minimum genes per cell for filtering

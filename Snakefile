@@ -31,6 +31,82 @@ OUTPUT_DIR = config["paths"]["output"]
 # Optional project directory name used when building the Seurat5Shiny bundle
 PROJECT_DIR_NAME = config.get("project_dir_name", "parse_comb")
 
+def create_sample_list_from_excel(excel_path, output_path):
+    """
+    Parse a Parse Biosciences Sample Loading Table (.xlsm) to create a
+    sample_list.txt mapping sample names to their 96-well plate positions.
+
+    Reads the 'Plate Configuration' sheet, extracts the plate layout and
+    sample name table, then groups consecutive wells belonging to the same
+    sample into ranges.
+
+    Output format (one line per contiguous well block):
+        {sample_name} {first_well}-{last_well}
+
+    Sample names are lower-cased with ", " (or ",") replaced by "_".
+    Single-well blocks are written as "{well}-{well}".
+    """
+    import openpyxl
+
+    wb = openpyxl.load_workbook(excel_path, keep_vba=True, data_only=True)
+    ws = wb["Plate Configuration"]
+
+    PLATE_ROWS = list("ABCDEFGH")
+
+    plate_grid = {}   # plate_row_letter -> [sample_num, ...] (12 values)
+    sample_names = {} # sample_num (int) -> formatted sample name (str)
+
+    for row in ws.iter_rows(values_only=True):
+        # Plate layout rows: second cell is a letter A-H, followed by 12 ints
+        if len(row) > 13 and row[1] in PLATE_ROWS:
+            plate_grid[row[1]] = list(row[2:14])
+
+        # Sample name rows: third cell is an int, fifth cell starts with 'S'
+        if (len(row) > 4
+                and isinstance(row[2], int)
+                and isinstance(row[4], str)
+                and row[4].startswith("S")):
+            sample_num = row[2]
+            # Normalise: lowercase; replace ", "/","  and invalid split-pipe
+            # characters "(", ")", "+" with "_", then collapse runs of "_"
+            # and strip leading/trailing underscores
+            sample_name = re.sub(
+                r"_+", "_",
+                row[4].lower()
+                .replace(", ", "_")
+                .replace(",", "_")
+                .replace("(", "_")
+                .replace(")", "_")
+                .replace("+", "_")
+            ).strip("_")
+            sample_names[sample_num] = sample_name
+
+    # Build ordered list of (well_name, sample_num) across all 96 wells
+    wells = []
+    for plate_row in PLATE_ROWS:
+        for col_idx, sample_num in enumerate(plate_grid[plate_row], start=1):
+            wells.append((f"{plate_row}{col_idx}", sample_num))
+
+    # Group consecutive wells with the same sample number into runs
+    lines = []
+    i = 0
+    while i < len(wells):
+        _, sample_num = wells[i]
+        j = i + 1
+        while j < len(wells) and wells[j][1] == sample_num:
+            j += 1
+        first_well = wells[i][0]
+        last_well = wells[j - 1][0]
+        lines.append(f"{sample_names[sample_num]} {first_well}-{last_well}")
+        i = j
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    with open(output_path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+
+    return lines
+
+
 # Function to retrieve sample names from config sample_list file
 def get_samples_from_config(config):
     """
@@ -102,6 +178,12 @@ def get_sublibraries_from_fastq_dir(fastq_dir):
     
     return sorted(list(sublibraries))
 
+# Generate metadata/sample_list.txt from the Excel sample loading table
+_excel_files = glob.glob("metadata/*.xlsm")
+if not _excel_files:
+    raise FileNotFoundError("No .xlsm file found in metadata/")
+create_sample_list_from_excel(_excel_files[0], "metadata/sample_list.txt")
+
 # Automatically detect sublibraries from FASTQ directory
 SUBLIBRARIES = get_sublibraries_from_fastq_dir(FASTQ_DIR)
 
@@ -134,12 +216,11 @@ rule all:
 # Helper function to get FASTQ files for a sample
 def get_fastq_files(wildcards, read):
     """Get R1 or R2 FASTQ file for a sample"""
-    import glob
-    pattern = f"{FASTQ_DIR}/{wildcards.sublibrary}/{wildcards.sublibrary}_S*_L*_{read}_*.fastq.gz"
-    files = glob.glob(pattern)
+    pattern = f"{FASTQ_DIR}/**/{wildcards.sublibrary}_S*_L*_{read}_*.fastq.gz"
+    files = glob.glob(pattern, recursive=True)
     if not files:
         raise ValueError(f"No {read} FASTQ files found for sample {wildcards.sublibrary}")
-    return files  # Return first match
+    return files
 
 # Rule: FastQC on raw FASTQ files
 rule fastqc:
@@ -200,20 +281,21 @@ rule parse_all:
         localcores = config["params"]["localcores"],
         localmem = config["params"]["localmem"],
         parse_container = config["parse_container"],
-        parse_transcriptome = config["parse_transcriptome"]
+        parse_transcriptome = config["parse_transcriptome"],
+        kit = config["params"].get("kit", "WT_mega")
     threads: 8
     resources:
         mem_mb = 48000,  # 48GB in MB
         mem_mb_per_cpu=6000,
         cpus = 8,
         partition = "standard",
-        account = "sbsandme_lab"
+        account = "sbsandme_lab",
     shell:
         """
         rm -rf {output.output_dir}
         split-pipe \
         --mode all \
-        --kit WT \
+        --kit {params.kit} \
         --chemistry v3 \
         --genome_dir {params.parse_transcriptome} \
         --fq1 {input.r1} \
@@ -236,7 +318,8 @@ rule parse_comb:
         fastq_dir = FASTQ_DIR,
         localcores = config["params"]["localcores"],
         localmem = config["params"]["localmem"],
-        parse_transcriptome = config["parse_transcriptome"]
+        parse_transcriptome = config["parse_transcriptome"],
+        kit = config["params"].get("kit", "WT_mega")
     threads: 8
     resources:
         mem_mb = 131072,  # 128GB in MB
@@ -249,7 +332,7 @@ rule parse_comb:
         rm -rf {output.output_dir}
         split-pipe \
         --mode comb \
-        --kit WT \
+        --kit {params.kit} \
         --chemistry v3 \
         --genome_dir {params.parse_transcriptome} \
         --output_dir {output.output_dir} \

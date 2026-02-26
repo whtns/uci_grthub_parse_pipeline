@@ -1,3 +1,4 @@
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "python.defaultInterpreterPath": "/data/homezvol1/kstachel/.conda/envs/snakemake/bin/python"
 }
