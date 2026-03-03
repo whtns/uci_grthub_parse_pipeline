@@ -61,13 +61,13 @@ def create_sample_list_from_excel(excel_path, output_path):
         if len(row) > 13 and row[1] in PLATE_ROWS:
             plate_grid[row[1]] = list(row[2:14])
 
-        # Sample name rows: third cell is an int, fifth cell starts with 'S'
+        # Sample name rows: third cell is an int, fifth cell is a non-empty string
         if (len(row) > 4
                 and isinstance(row[2], int)
                 and isinstance(row[4], str)
-                and row[4].startswith("S")):
+                and row[4].strip()):
             sample_num = row[2]
-            # Normalise: lowercase; replace ", "/","  and invalid split-pipe
+            # Normalise: lowercase; replace spaces, ", "/","  and invalid split-pipe
             # characters "(", ")", "+" with "_", then collapse runs of "_"
             # and strip leading/trailing underscores
             sample_name = re.sub(
@@ -75,6 +75,7 @@ def create_sample_list_from_excel(excel_path, output_path):
                 row[4].lower()
                 .replace(", ", "_")
                 .replace(",", "_")
+                .replace(" ", "_")
                 .replace("(", "_")
                 .replace(")", "_")
                 .replace("+", "_")
@@ -97,7 +98,8 @@ def create_sample_list_from_excel(excel_path, output_path):
             j += 1
         first_well = wells[i][0]
         last_well = wells[j - 1][0]
-        lines.append(f"{sample_names[sample_num]} {first_well}-{last_well}")
+        if sample_num is not None:
+            lines.append(f"{sample_names[sample_num]} {first_well}-{last_well}")
         i = j
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)

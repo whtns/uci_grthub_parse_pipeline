@@ -1,0 +1,183 @@
+---
+title: "SparN Parse Pipeline — Software Versions"
+subtitle: "Analysis environment for 251017_SparN_parse"
+date: "2026-03-03"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: flatly
+    code-fold: true
+    embed-resources: true
+---
+
+## Methods Summary
+
+Raw sequencing reads were demultiplexed and aligned to the mouse GRCm38 reference genome using the Parse Biosciences split-pipe pipeline (v1.6.0, `--mode all`, WT_mega kit, chemistry v3). Per-sublibrary count matrices were subsequently combined across sequencing runs using split-pipe in combination mode (`--mode comb`). Both steps were executed within a Singularity container (parsebio-1.0.3.sif) and orchestrated by Snakemake.
+
+For downstream analysis, per-sample count matrices were loaded into Python (v3.12.11) using Scanpy (v1.11.4) and AnnData (v0.12.2). Cells with fewer than 200 genes and genes detected in fewer than 5 cells were removed. The top 2,000 highly variable genes were selected using Scanpy's `highly_variable_genes` function with batch-aware normalisation. Data were log-normalised, scaled, and reduced to 30 principal components. Batch correction across samples was performed using Harmony (harmonypy v0.0.10) applied to the PCA embedding. Nearest-neighbour graphs were constructed in the Harmony latent space (30 dimensions, 15 neighbours) and used for UMAP visualisation (umap-learn v0.5.9, `min_dist=0.3`) and Leiden clustering (leidenalg v0.10.2, resolution 0.5). Marker genes for each cluster were identified using a Wilcoxon rank-sum test implemented in Scanpy (`rank_genes_groups`). Differential expression between treatment and control groups within each cluster was performed using the same test. The bisphenol (BP) dataset comprised 28,915 cells across 21 sample batches, yielding 9 Leiden clusters; the non-bisphenol (non-BP) dataset comprised 44,156 cells across 9 batches, yielding 8 clusters. All integration and analysis steps were executed as Papermill (v2.6.0)-parameterised notebooks managed by Snakemake.
+
+---
+
+## Overview
+
+This document records the software environment used in the SparN Parse scRNA-seq analysis pipeline. The workflow consists of three stages:
+
+1. **FASTQ demultiplexing and gene counting** — Parse Biosciences `split-pipe` run via Snakemake (`parse_all` and `parse_comb` rules)
+2. **Batch integration** — Harmony-based integration via `parse_harmony_integration.py` (Snakemake rule `parse_harmony_integration_python`)
+3. **Downstream inspection** — Papermill-executed Jupyter notebooks (`inspect_integrated_anndata_bp.ipynb` and `inspect_integrated_anndata_nonbp.ipynb`)
+
+---
+
+## Pipeline Orchestration
+
+| Software | Version | Notes |
+|----------|---------|-------|
+| Snakemake | — | Workflow manager; version pulled from `scvi-tools` conda env |
+| Python (spipe env) | 3.12.8 | Used for split-pipe execution |
+| Python (scvi-tools env) | 3.12.11 | Used for integration and notebook steps |
+
+---
+
+## Stage 1 — Parse split-pipe (FASTQ Processing)
+
+Executed via the `parse_all` (per-sublibrary) and `parse_comb` (combined) Snakemake rules using the `spipe` conda environment.
+
+| Software | Version | Notes |
+|----------|---------|-------|
+| split-pipe | 1.6.0 | Parse Biosciences; run via Singularity container `parsebio-1.0.3.sif` |
+| Singularity container | parsebio-1.0.3.sif | `/dfs7/singularity_containers/rcic/parsebio-1.0.3.sif` |
+
+### split-pipe parameters
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `--mode all` | — | Per-sublibrary demux + counting |
+| `--mode comb` | — | Combine sublibraries |
+| `--kit` | `WT_mega` | Parse kit type |
+| `--chemistry` | `v3` | Parse chemistry version |
+| `--genome_dir` | `grcm38` | Mouse GRCm38 reference (`/dfs9/ucightf-lab/kstachel/TOOLS/REFERENCES/mouse/split-pipe/grcm38`) |
+| `--nthreads` | 8 | Threads per sublibrary job |
+
+---
+
+## Stage 2 — Harmony Integration (`scvi-tools` conda env)
+
+Executed by `src/parse_harmony_integration.py` via the `parse_harmony_integration_python` Snakemake rule.
+
+### Core Python packages
+
+| Package | Version | Role |
+|---------|---------|------|
+| Python | 3.12.11 | Runtime |
+| scanpy | 1.11.4 | Single-cell analysis framework |
+| anndata | 0.12.2 | Annotated data matrix |
+| harmonypy | 0.0.10 | Harmony batch correction (Python port) |
+| scvi-tools | 1.3.3 | Deep generative models for single-cell omics |
+| leidenalg | 0.10.2 | Leiden community detection |
+| python-igraph | 0.11.9 | Graph library (required by leidenalg) |
+| umap-learn | 0.5.9.post2 | UMAP dimensionality reduction |
+| pandas | 2.3.2 | Data manipulation |
+| numpy | 2.3.3 | Numerical computing |
+| scipy | 1.16.2 | Scientific computing |
+| matplotlib | 3.10.6 | Plotting |
+| grthub-tools | 0.1.0 | UCI lab utilities (`read_parse`, `preprocess_adata`, `integrate_w_harmony`) |
+| openpyxl | 3.1.5 | Excel parsing (sample loading table) |
+| papermill | 2.6.0 | Parameterised notebook execution |
+
+### Integration parameters (from `config.yaml`)
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `min_genes` | 200 | Minimum genes per cell |
+| `min_cells` | 5 | Minimum cells per gene |
+| `n_top_genes` | 2000 | Highly variable genes selected |
+| `batch_key` | `batch` | Key used for Harmony batch variable |
+| `harmony_theta` | 2 | Harmony diversity clustering penalty |
+| `harmony_dims` | 30 | PCA dimensions input to Harmony |
+| `umap_dims` | 30 | Dimensions used for UMAP |
+| `cluster_resolution` | 0.5 | Leiden clustering resolution |
+
+---
+
+## Stage 3 — Downstream Notebooks
+
+Both notebooks are parameterised with Papermill and executed by the `parse_harmony_notebook` Snakemake rule. They run in the same `scvi-tools` conda environment as Stage 2 (all package versions identical to the table above).
+
+### `inspect_integrated_anndata_bp.ipynb` (BP cohort)
+
+Analyses the bisphenol (BP) treatment dataset.
+
+| Property | Value |
+|----------|-------|
+| Input file | `output/scanpy/bp_harmony_integrated.h5ad` |
+| Cells × HVGs | 28,915 × 2,000 |
+| Batches | 21 (BPA/BPF/BPS × D7/D20 × dose levels + untreated controls) |
+| Leiden clusters | 9 (resolution 0.5) |
+| Batch correction key | `batch` |
+| DE groupby variable | `condition` |
+| Group 1 | `treat` |
+| Group 2 | `control` |
+
+**Analysis steps:**
+
+1. Load pre-integrated AnnData (`.h5ad`)
+2. PCA variance ratio inspection
+3. UMAP without batch correction (30 PCs, 20 neighbours, `min_dist=0.3`)
+4. Harmony-corrected UMAP (`X_pca_harmony` representation)
+5. Leiden clustering on Harmony latent space (resolution 0.5)
+6. Differential expression: `sc.tl.rank_genes_groups` (Wilcoxon) per cluster
+7. Stacked bar plots of cluster × batch composition
+8. Within-cluster DE between `treat` and `control` groups
+
+---
+
+### `inspect_integrated_anndata_nonbp.ipynb` (non-BP cohort)
+
+Analyses the non-bisphenol treatment dataset.
+
+| Property | Value |
+|----------|-------|
+| Input file | `output/scanpy/nonbp_harmony_integrated.h5ad` |
+| Cells × HVGs | 44,156 × 2,000 |
+| Batches | 9 (CH/OG/SM/WG × dose levels + untreated control) |
+| Leiden clusters | 8 (resolution 0.5) |
+| Batch correction key | `batch` |
+| DE groupby variable | `condition` |
+| Group 1 | `treat` |
+| Group 2 | `control` |
+
+**Analysis steps** (identical pipeline to the BP notebook):
+
+1. Load pre-integrated AnnData
+2. PCA variance ratio inspection
+3. UMAP without batch correction
+4. Harmony-corrected UMAP
+5. Leiden clustering
+6. `rank_genes_groups` (Wilcoxon) per cluster
+7. Stacked bar plots of cluster × batch composition
+8. Within-cluster DE between `treat` and `control`
+
+---
+
+## Conda Environments
+
+The workflow uses two named conda environments:
+
+| Env name | Primary use | Key packages |
+|----------|------------|--------------|
+| `spipe` | Parse split-pipe (FASTQ → count matrices) | split-pipe 1.6.0, Python 3.12.8 |
+| `scvi-tools` | Integration, clustering, notebook execution | scanpy 1.11.4, harmonypy 0.0.10, scvi-tools 1.3.3, Python 3.12.11 |
+
+The `scvi-tools` environment spec is defined in [`envs/scanpy_scvi.yaml`](../envs/scanpy_scvi.yaml); the full locked dependency list is in [`requirements.txt`](../requirements.txt).
+
+---
+
+## Reference Data
+
+| Resource | Path | Notes |
+|----------|------|-------|
+| Mouse transcriptome (split-pipe) | `/dfs9/ucightf-lab/kstachel/TOOLS/REFERENCES/mouse/split-pipe/grcm38` | GRCm38 |
+| Parse Singularity container | `/dfs7/singularity_containers/rcic/parsebio-1.0.3.sif` | parsebio 1.0.3 |
+| Sample loading table | `metadata/*.xlsm` | Parse Biosciences Plate Configuration format |
+| Sample list | `metadata/sample_list.txt` | Auto-generated from `.xlsm` by Snakemake |
