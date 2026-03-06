@@ -194,7 +194,27 @@ SAMPLES = get_samples_from_config(config)
 print(f"Detected sublibraries: {SUBLIBRARIES}", file=sys.stderr)
 print(f"Detected samples: {SAMPLES}", file=sys.stderr)
 
+# Optional: bp/nonbp Harmony integration (included only when the file is present)
+_bp_nonbp_smk = "rules/harmony_bp_nonbp.smk"
+
 # Rule all - defines final outputs for all samples
+_bp_nonbp_outputs = (
+    [
+        f"{OUTPUT_DIR}/scanpy/combined_bp_harmony_integrated.h5ad",
+        f"{OUTPUT_DIR}/scanpy/combined_nonbp_harmony_integrated.h5ad",
+        f"{OUTPUT_DIR}/scanpy/combined_bp_harmony_integrated.rds",
+        f"{OUTPUT_DIR}/scanpy/combined_nonbp_harmony_integrated.rds",
+        f"{OUTPUT_DIR}/scanpy/combined_bp_raw_counts.csv",
+        f"{OUTPUT_DIR}/scanpy/combined_bp_obs.csv",
+        f"{OUTPUT_DIR}/scanpy/combined_bp_var.csv",
+        f"{OUTPUT_DIR}/scanpy/combined_nonbp_raw_counts.csv",
+        f"{OUTPUT_DIR}/scanpy/combined_nonbp_obs.csv",
+        f"{OUTPUT_DIR}/scanpy/combined_nonbp_var.csv",
+    ]
+    if os.path.exists(_bp_nonbp_smk)
+    else []
+)
+
 rule all:
     input:
         # # FastQC reports
@@ -213,7 +233,8 @@ rule all:
         # f"{OUTPUT_DIR}/seurat/parse_comb_harmony_plots.pdf",
         f"{OUTPUT_DIR}/scanpy/combined.h5ad",
         f"{OUTPUT_DIR}/scanpy/inspect_integrated_anndata_combined.ipynb",
-        f"{OUTPUT_DIR}/Seurat5Shiny/{PROJECT_DIR_NAME}"
+        f"{OUTPUT_DIR}/Seurat5Shiny/{PROJECT_DIR_NAME}",
+        *_bp_nonbp_outputs
 
 # Helper function to get FASTQ files for a sample
 def get_fastq_files(wildcards, read):
@@ -744,3 +765,6 @@ rule scrublet:
         mkdir -p {OUTPUT_DIR}/scrublet
         python {params.script} --input {input.matrix} --output {output.doublets}
         """
+
+if os.path.exists(_bp_nonbp_smk):
+    include: _bp_nonbp_smk
